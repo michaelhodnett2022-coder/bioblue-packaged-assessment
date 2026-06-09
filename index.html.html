@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BioBlue Packaged Site Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBb-EHe4hw-UmY9xFNRDMwbf-A27S2WbPQ&libraries=places" async defer></script>
+<style>
+  :root {
+    --navy:#003466;--blue:#0055a5;--blue-bright:#0077cc;--blue-light:#e8f2fb;--blue-pale:#f4f9ff;
+    --green:#00875a;--green-light:#e3f5ee;--red:#c0392b;--red-light:#fdecea;
+    --amber:#e67e22;--orange-light:#fef5e7;
+    --gray-dark:#2c3e50;--gray-mid:#6b7280;--gray-light:#e5e7eb;--gray-pale:#f9fafb;
+    --shadow:0 2px 12px rgba(0,52,102,0.10);--shadow-lg:0 8px 32px rgba(0,52,102,0.15);
+    --radius:12px;--radius-sm:8px;
+  }
+  * { box-sizing:border-box;margin:0;padding:0; }
+  body { font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--gray-dark);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased; }
+
+  /* HEADER */
+  .app-header { background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg); }
+  .header-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+  .logo-badge { background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:1px;color:#a8d4f5; }
+  .header-title { font-size:17px;font-weight:700; }
+  .header-subtitle { font-size:12px;opacity:0.7;font-weight:300; }
+  .progress-bar-wrap { background:rgba(255,255,255,0.15);border-radius:4px;height:5px;overflow:hidden;margin-top:10px; }
+  .progress-bar-fill { height:100%;background:#64d2ff;border-radius:4px;transition:width 0.4s ease;width:0%; }
+  .progress-label { font-size:11px;opacity:0.7;margin-top:4px;text-align:right; }
+
+  /* LAYOUT */
+  .main-content { max-width:820px;margin:0 auto;padding:20px 16px 100px; }
+
+  /* CARDS */
+  .section-card { background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden; }
+  .section-header { background:var(--navy);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none; }
+  .section-header-icon { background:rgba(255,255,255,0.2);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+  .section-header-text { flex:1; }
+  .section-header h2 { font-size:14px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase; }
+  .section-header p { font-size:11px;opacity:0.7;margin-top:1px; }
+  .section-toggle { font-size:18px;opacity:0.7; }
+  .section-body { padding:20px; }
+  .section-body.collapsed { display:none; }
+
+  /* FIELDS */
+  .field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px; }
+  .field-row.full { grid-template-columns:1fr; }
+  .field-row.three { grid-template-columns:1fr 1fr 1fr; }
+  @media(max-width:520px) { .field-row,.field-row.three { grid-template-columns:1fr; } }
+  .field-group { display:flex;flex-direction:column;gap:5px; }
+  .field-label { font-size:12px;font-weight:600;color:var(--gray-mid);text-transform:uppercase;letter-spacing:0.4px; }
+  .field-label.required::after { content:' *';color:var(--red); }
+  input[type="text"],input[type="email"],input[type="tel"],input[type="date"],input[type="number"],input[type="time"],textarea,select {
+    width:100%;padding:10px 12px;border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);
+    font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray-dark);background:var(--gray-pale);
+    transition:border-color 0.15s;-webkit-appearance:none;
+  }
+  input:focus,textarea:focus,select:focus { outline:none;border-color:var(--blue-bright);box-shadow:0 0 0 3px rgba(0,119,204,0.12);background:white; }
+  textarea { resize:vertical;min-height:80px; }
+  input.field-filled,textarea.field-filled,select.field-filled { border-color:#6dba8a!important;background:#f2fbf5!important; }
+  input.field-empty,textarea.field-empty,select.field-empty { border-color:#f5a0a8!important;background:#fff5f6!important; }
+
+  /* Y/N */
+  .yn-item { display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border-radius:var(--radius-sm);margin-bottom:6px;border:1.5px solid #f5a0a8;background:#fff5f6;transition:border-color 0.15s,background 0.15s; }
+  .yn-item.yes { background:var(--green-light);border-color:#6dba8a; }
+  .yn-item.no { background:var(--red-light);border-color:#f5c6c2; }
+  .yn-item.na { background:var(--orange-light);border-color:#f5ddb5; }
+  .yn-num { display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;background:var(--blue);color:white;font-size:11px;font-weight:700;border-radius:50%;margin-right:8px;flex-shrink:0; }
+  .yn-question { flex:1;font-size:13.5px;line-height:1.4;padding-top:2px; }
+  .yn-controls { display:flex;gap:6px;flex-shrink:0; }
+  .yn-btn { padding:5px 12px;border-radius:6px;border:1.5px solid var(--gray-light);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:white;color:var(--gray-mid);transition:all 0.15s; }
+  .yn-btn.active-y { background:var(--green);border-color:var(--green);color:white; }
+  .yn-btn.active-n { background:var(--red);border-color:var(--red);color:white; }
+  .yn-btn.active-na { background:var(--amber);border-color:var(--amber);color:white; }
+  .inline-details-field { display:flex;align-items:flex-start;gap:10px;background:var(--blue-pale);border:1.5px solid var(--blue-light);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:12px 14px;margin-top:-4px;margin-bottom:6px; }
+  .inline-details-arrow { font-size:18px;color:var(--blue-bright);font-weight:700;padding-top:18px;flex-shrink:0; }
+  .inline-details-content { flex:1;display:flex;flex-direction:column;gap:5px; }
+
+  /* PHOTOS */
+  .photo-drop-zone { border:2px dashed var(--blue-bright);border-radius:var(--radius);padding:24px;text-align:center;background:var(--blue-pale);cursor:pointer;position:relative; }
+  .photo-drop-zone input { position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0;width:100%;height:100%; }
+  .photo-drop-icon { font-size:36px;margin-bottom:8px; }
+  .photo-drop-text { font-size:14px;font-weight:600;color:var(--blue); }
+  .photo-drop-sub { font-size:12px;color:var(--gray-mid);margin-top:4px; }
+  .camera-btn-wrap { margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap; }
+  .camera-btn { background:var(--blue-bright);color:white;border:none;border-radius:var(--radius-sm);padding:10px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px; }
+  .photo-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px; }
+  .photo-thumb { position:relative;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:4/3;background:var(--gray-light); }
+  .photo-thumb img { width:100%;height:100%;object-fit:cover;display:block; }
+  .photo-remove-btn { position:absolute;top:5px;right:5px;background:rgba(255,0,0,0.8);color:white;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+  .photo-count-badge { background:var(--blue-bright);color:white;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;display:inline-block;margin-left:6px; }
+
+  /* STICKY FOOTER */
+  .sticky-footer { position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--blue-light);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;z-index:99;box-shadow:0 -4px 20px rgba(0,52,102,0.12); }
+  .sticky-footer .btn { padding:12px 8px;font-size:13px;font-weight:700;border-radius:var(--radius-sm);text-align:center;white-space:nowrap;width:100%; }
+  .btn-clear { background:white;color:var(--red);border:2px solid var(--red); }
+  .btn-dl { background:white;color:var(--navy);border:2px solid var(--navy); }
+  .btn-submit { background:var(--navy);color:white;border:none; }
+  .btn-submit:hover { background:var(--blue); }
+
+  /* MODAL + TOAST */
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px; }
+  .modal-overlay.active { display:flex; }
+  .modal-box { background:white;border-radius:var(--radius);padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow-lg); }
+  .modal-box h3 { font-size:16px;margin-bottom:8px;color:var(--navy); }
+  .modal-box p { font-size:13px;color:var(--gray-mid);margin-bottom:16px; }
+  .modal-actions { display:flex;gap:8px;justify-content:flex-end; }
+  .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all 0.18s; }
+  .btn-primary { background:white;color:var(--navy); }
+  .toast { position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gray-dark);color:white;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:300;white-space:nowrap; }
+  .toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+
+  /* GPS */
+  .address-field-wrap { position:relative; }
+  .gps-btn { position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--blue-bright);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap; }
+  .gps-status { font-size:11px;color:var(--blue);margin-top:3px;min-height:16px; }
+
+  /* TIME PICKER */
+  .time-picker-wrap { display:flex;flex-direction:column;gap:8px; }
+  .time-field-pair { display:flex;align-items:center;gap:8px; }
+  .time-field-group { display:flex;flex-direction:column;gap:3px;flex:1; }
+  .time-field-label { font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:0.4px; }
+  .time-field-group input[type="time"] { padding:8px 10px;font-size:15px;font-family:'DM Mono',monospace;font-weight:500;color:var(--navy);background:var(--blue-pale);border:1.5px solid var(--blue-light);border-radius:var(--radius-sm); }
+  .time-divider { font-size:12px;font-weight:600;color:var(--gray-mid);padding-top:16px;flex-shrink:0; }
+  .open24-label { display:flex;align-items:center;gap:8px;cursor:pointer;width:fit-content;margin-top:8px; }
+  .open24-or { font-size:12px;font-weight:600;color:var(--gray-mid); }
+  .open24-badge { background:var(--green-light);color:var(--green);border:1.5px solid #b7e5d3;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700; }
+  .open24-label input:checked + .open24-badge { background:var(--green);color:white;border-color:var(--green); }
+
+  /* MUD MAP */
+  #mudmapWrap { position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;border:2px solid var(--blue-light);background:#e8e0d8; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="logo-badge">BIOBLUE</div>
+      <div>
+        <div class="header-title">Packaged Site Assessment</div>
+        <div class="header-subtitle">AdBlue® Packaged Products · Site Evaluation</div>
+      </div>
+    </div>
+    <button onclick="confirmClear()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Clear</button>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
+  <div class="progress-label" id="progressLabel">0% complete</div>
+</div>
+
+<div class="main-content">
+
+  <!-- SECTION 1: CLIENT DETAILS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s1')">
+      <div class="section-header-icon">🏢</div>
+      <div class="section-header-text">
+        <h2>1. Client Details</h2>
+        <p>Customer and site information</p>
+      </div>
+      <div class="section-toggle" id="toggle-s1">▼</div>
+    </div>
+    <div class="section-body" id="s1">
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Customer / Business Name</label>
+          <input type="text" id="customerName" placeholder="e.g. Acme Haulage Pty Ltd" oninput="updateProgress()">
+        </div>
+        <div class="field-group">
+          <label class="field-label required">Date of Assessment</label>
+          <input type="date" id="assessDate" oninput="updateProgress()">
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-bottom:12px;">
+        <label class="field-label required">Site Address</label>
+        <div class="address-field-wrap">
+          <div style="position:relative;">
+            <input type="text" id="siteAddress" placeholder="Street address" style="padding-right:110px;" oninput="updateProgress();addrAutocomplete(this,'addrSuggestions')" autocomplete="off">
+            <div id="addrSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
+          </div>
+          <button class="gps-btn" onclick="getGPS()">📍 Use GPS</button>
+        </div>
+        <div class="gps-status" id="gpsStatus"></div>
+      </div>
+
+      <div class="field-row three">
+        <div class="field-group">
+          <label class="field-label">Suburb</label>
+          <input type="text" id="suburb" placeholder="e.g. Welshpool">
+        </div>
+        <div class="field-group">
+          <label class="field-label">State</label>
+          <select id="state">
+            <option value="">Select...</option>
+            <option>WA</option><option>NSW</option><option>VIC</option>
+            <option>QLD</option><option>SA</option><option>TAS</option>
+            <option>NT</option><option>ACT</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Postcode</label>
+          <input type="text" id="postcode" placeholder="6106" maxlength="4">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 2: SITE ACCESS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s2')">
+      <div class="section-header-icon">🕐</div>
+      <div class="section-header-text">
+        <h2>2. Site Access & Opening Times</h2>
+        <p>Delivery hours and access requirements</p>
+      </div>
+      <div class="section-toggle" id="toggle-s2">▼</div>
+    </div>
+    <div class="section-body" id="s2">
+
+      <div class="field-group" style="margin-bottom:16px;">
+        <label class="field-label">Opening Times</label>
+        <div class="time-picker-wrap">
+          <div class="time-field-pair">
+            <div class="time-field-group">
+              <span class="time-field-label">Opens</span>
+              <input type="time" id="opensTime" onchange="updateHours()">
+            </div>
+            <div class="time-divider">to</div>
+            <div class="time-field-group">
+              <span class="time-field-label">Closes</span>
+              <input type="time" id="closesTime" onchange="updateHours()">
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Additional Windows</label>
+            <input type="text" id="additionalHours" placeholder="e.g. 4:00pm–6:00pm also available" oninput="updateHours()">
+          </div>
+          <label class="open24-label">
+            <span class="open24-or">— Or —</span>
+            <input type="checkbox" id="open24" onchange="toggle24(this)">
+            <span class="open24-badge">Open 24 Hours</span>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+            <div id="satPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('satOK').click()">
+              <input type="checkbox" id="satOK" onchange="updateHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
+              <span style="font-size:13px;font-weight:500;color:var(--gray-dark);">Saturday<br>delivery OK</span>
+            </div>
+            <div id="sunPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('sunOK').click()">
+              <input type="checkbox" id="sunOK" onchange="updateHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
+              <span style="font-size:13px;font-weight:500;color:var(--gray-dark);">Sunday<br>delivery OK</span>
+            </div>
+          </div>
+          <input type="hidden" id="accessHours">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Specific Delivery Requests</label>
+        <textarea id="deliveryRequests" rows="3" placeholder="e.g. Contact Tent 1hr before delivery, call John on 0412 345 678..." oninput="updateProgress()"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 3: SITE QUESTIONS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s3')">
+      <div class="section-header-icon">📋</div>
+      <div class="section-header-text">
+        <h2>3. Site Questions</h2>
+        <p>Equipment and access requirements</p>
+      </div>
+      <div class="section-toggle" id="toggle-s3">▼</div>
+    </div>
+    <div class="section-body" id="s3">
+      <div id="yn-group"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: SITE CONTACT -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s4')">
+      <div class="section-header-icon">👤</div>
+      <div class="section-header-text">
+        <h2>4. Site Contact</h2>
+        <p>Primary contact for this site</p>
+      </div>
+      <div class="section-toggle" id="toggle-s4">▼</div>
+    </div>
+    <div class="section-body" id="s4">
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Contact Name</label>
+          <input type="text" id="contactName" placeholder="Full name" oninput="updateProgress()">
+        </div>
+        <div class="field-group">
+          <label class="field-label required">Contact Phone</label>
+          <input type="tel" id="contactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Contact Email</label>
+          <input type="email" id="contactEmail" placeholder="contact@company.com">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Title / Role</label>
+          <input type="text" id="contactRole" placeholder="e.g. Depot Manager">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: MUD MAP -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s5')">
+      <div class="section-header-icon">🗺️</div>
+      <div class="section-header-text">
+        <h2>5. Site Mud Map</h2>
+        <p>Mark delivery zone and product storage area</p>
+      </div>
+      <div class="section-toggle" id="toggle-s5">▼</div>
+    </div>
+    <div class="section-body" id="s5">
+      <p style="font-size:12.5px;color:var(--gray-mid);margin-bottom:12px;">Enter the site address to load a satellite view, then draw the delivery route and mark the storage area.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;position:relative;">
+        <input type="text" id="mudmapAddress" placeholder="Site address (auto-filled from Section 1)" style="flex:1;min-width:200px;" oninput="addrAutocomplete(this,'mapSuggestions')" autocomplete="off">
+        <div id="mapSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
+        <button onclick="loadSatellite()" style="font-size:13px;padding:8px 18px;border-radius:8px;border:2px solid var(--blue);background:var(--blue);color:white;font-weight:700;cursor:pointer;white-space:nowrap;">Add Map</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px;">
+        <button onclick="setTool('pen')" id="toolPen" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--navy);background:var(--navy);color:white;font-weight:700;cursor:pointer;">✏️<br>Freehand</button>
+        <button onclick="setTool('entry')" id="toolEntry" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid #00875a;background:white;color:#00875a;font-weight:700;cursor:pointer;opacity:0.55;">🟢<br>Entry</button>
+        <button onclick="setTool('exit')" id="toolExit" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--red);background:white;color:var(--red);font-weight:700;cursor:pointer;opacity:0.55;">🔴<br>Exit</button>
+        <button onclick="setTool('dot')" id="toolDot" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--blue);background:white;color:var(--blue);font-weight:700;cursor:pointer;opacity:0.55;">📍<br>Storage</button>
+        <button onclick="setTool('pan')" id="toolPan" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--gray-mid);background:white;color:var(--gray-mid);font-weight:700;cursor:pointer;opacity:0.55;">🖐<br>Pan</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <button onclick="mapZoom(1)" style="font-size:18px;padding:7px 4px;border-radius:8px;border:2px solid var(--gray-mid);background:white;color:var(--navy);font-weight:700;cursor:pointer;">+</button>
+        <button onclick="mapZoom(-1)" style="font-size:18px;padding:7px 4px;border-radius:8px;border:2px solid var(--gray-mid);background:white;color:var(--navy);font-weight:700;cursor:pointer;">−</button>
+        <button onclick="undoMap()" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--amber);background:white;color:var(--amber);font-weight:700;cursor:pointer;">↩<br>Undo</button>
+        <button onclick="clearMap()" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--red);background:white;color:var(--red);font-weight:700;cursor:pointer;">✕<br>Clear</button>
+        <button onclick="resetMap()" style="font-size:11px;padding:8px 4px;border-radius:8px;border:2px solid var(--gray-mid);background:white;color:var(--gray-mid);font-weight:700;cursor:pointer;">🔄<br>Reset</button>
+      </div>
+      <div id="mudmapWrap">
+        <canvas id="tileCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+        <div id="mapPlaceholder" style="width:100%;height:100%;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-mid);gap:8px;">
+          <span style="font-size:36px;">🛰️</span>
+          <span style="font-size:13px;font-weight:600;">Enter address above and tap Add Map</span>
+        </div>
+        <canvas id="drawCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;touch-action:none;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: PHOTOS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s6')">
+      <div class="section-header-icon">📸</div>
+      <div class="section-header-text">
+        <h2>6. Site Photos</h2>
+        <p>Site and storage area photos <span class="photo-count-badge" id="photoBadge">0/20</span></p>
+      </div>
+      <div class="section-toggle" id="toggle-s6">▼</div>
+    </div>
+    <div class="section-body" id="s6">
+      <div class="photo-drop-zone" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+        <input type="file" accept="image/*" multiple onchange="handleFiles(event)" id="photoInput">
+        <div class="photo-drop-icon">🖼️</div>
+        <div class="photo-drop-text">Drag & drop photos here</div>
+        <div class="photo-drop-sub">or tap to browse from gallery</div>
+      </div>
+      <div class="camera-btn-wrap">
+        <button class="camera-btn" onclick="document.getElementById('camInput').click()">📷 Take Photo</button>
+        <button class="camera-btn" style="background:var(--gray-mid);" onclick="document.getElementById('photoInput').click()">🖼️ Gallery</button>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="camInput" style="display:none;" onchange="handleFiles(event)">
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 7: NOTES -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s7')">
+      <div class="section-header-icon">📝</div>
+      <div class="section-header-text">
+        <h2>7. Notes</h2>
+        <p>Any additional observations or follow-up items</p>
+      </div>
+      <div class="section-toggle" id="toggle-s7">▼</div>
+    </div>
+    <div class="section-body" id="s7">
+      <div class="field-group" style="margin-bottom:16px;">
+        <label class="field-label">Assessment Notes</label>
+        <textarea id="assessNotes" rows="4" placeholder="Any additional observations, follow-up items, or next steps..." oninput="updateProgress()"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Assessed By</label>
+          <select id="assessedBy" onchange="autoFillAssessor(this.value);updateProgress()">
+            <option value="">— Select —</option>
+            <option>Michael Hodnett</option>
+            <option>Derek Page</option>
+            <option>Angelo Sayas</option>
+            <option>Kevin Goverd</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input type="email" id="assessorEmail" placeholder="assessor@bioblue.com.au">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- STICKY FOOTER -->
+<div class="sticky-footer">
+  <button class="btn btn-clear" onclick="confirmClear()">🗑️ Clear</button>
+  <button class="btn btn-dl" onclick="downloadPDF()">⬇️ Download</button>
+  <button class="btn btn-submit" onclick="uploadAndSend()">☁️ Upload & Send</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <h3>✅ Assessment Submitted</h3>
+    <p id="modalMsg" style="white-space:pre-line;"></p>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =====================================================================
+// CONFIG
+// =====================================================================
+const GDRIVE_CLIENT_ID   = '49055725643-mlnqu8l92vmau83rnrk8imupiqvs03t1.apps.googleusercontent.com';
+const GDRIVE_FOLDER_NAME = 'BioBlue Audits';
+const CLIENT_RECORDS_NAME = 'BioBlue_Client_Records.xlsx';
+let gdriveToken = null;
+
+const ASSESSORS = {
+  'Michael Hodnett': { email:'michael.hodnett@bioblue.com.au', mobile:'0427 670 726' },
+  'Derek Page':      { email:'derek.page@bioblue.com.au',      mobile:'+61 456 895 522' },
+  'Angelo Sayas':    { email:'angelo.sayas@bioblue.com.au',    mobile:'+61 459 884 407' },
+  'Kevin Goverd':    { email:'kevin.goverd@bioblue.com.au',    mobile:'0474 366 288' },
+};
+
+// =====================================================================
+// Y/N QUESTIONS
+// =====================================================================
+const questions = [
+  { id:'forklift',  num:1, text:'Is there a forklift available on site?', reverseColor:false },
+  { id:'tailLift',  num:2, text:'Will a tail lift truck be required for delivery?', reverseColor:false, showIf:{ id:'forklift', val:'N' } },
+  { id:'clearAccess', num:3, text:'Is the delivery/storage area easily accessible for a delivery vehicle?', reverseColor:false },
+  { id:'coveredStorage', num:4, text:'Is there covered or undercover storage available?', reverseColor:false },
+];
+
+const ynValues = {};
+
+function renderQuestions() {
+  const container = document.getElementById('yn-group');
+  container.innerHTML = '';
+  questions.forEach(q => {
+    if (q.showIf) {
+      if (ynValues[q.showIf.id] !== q.showIf.val) return;
+    }
+    const div = document.createElement('div');
+    div.className = 'yn-item';
+    div.id = 'yn-' + q.id;
+    div.innerHTML = `
+      <div class="yn-question"><span class="yn-num">${q.num}</span>${q.text}</div>
+      <div class="yn-controls">
+        <button class="yn-btn" onclick="setYN('${q.id}','Y')">Y</button>
+        <button class="yn-btn" onclick="setYN('${q.id}','N')">N</button>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function setYN(id, val) {
+  ynValues[id] = val;
+  renderQuestions(); // re-render to show/hide conditional questions
+  // Reapply colours
+  questions.forEach(q => {
+    const item = document.getElementById('yn-' + q.id);
+    if (!item) return;
+    item.classList.remove('yes','no','na');
+    const v = ynValues[q.id];
+    if (!v) return;
+    item.classList.add(v === 'Y' ? (q.reverseColor ? 'no' : 'yes') : (q.reverseColor ? 'yes' : 'no'));
+    item.querySelectorAll('.yn-btn').forEach(b => {
+      b.classList.remove('active-y','active-n');
+      if (b.textContent === 'Y' && v === 'Y') b.classList.add('active-y');
+      if (b.textContent === 'N' && v === 'N') b.classList.add('active-n');
+    });
+  });
+  updateProgress();
+}
+
+// =====================================================================
+// HOURS
+// =====================================================================
+function formatTime12(t) {
+  if (!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`;
+}
+function toggle24(cb) {
+  document.getElementById('opensTime').closest('.time-field-pair').style.opacity = cb.checked ? '0.4' : '1';
+  document.getElementById('opensTime').closest('.time-field-pair').style.pointerEvents = cb.checked ? 'none' : '';
+  document.getElementById('accessHours').value = cb.checked ? 'Open 24 Hours' : '';
+  if (!cb.checked) updateHours();
+}
+function updateHours() {
+  if (document.getElementById('open24').checked) return;
+  const o = document.getElementById('opensTime').value;
+  const c = document.getElementById('closesTime').value;
+  const add = document.getElementById('additionalHours').value.trim();
+  const sat = document.getElementById('satOK').checked;
+  const sun = document.getElementById('sunOK').checked;
+  let r = '';
+  if (o && c) r = `${formatTime12(o)} – ${formatTime12(c)}`;
+  else if (o) r = `Opens ${formatTime12(o)}`;
+  else if (c) r = `Closes ${formatTime12(c)}`;
+  if (add) r = r ? `${r} · ${add}` : add;
+  const wknd = [sat?'Saturday ✓':'', sun?'Sunday ✓':''].filter(Boolean).join(', ');
+  if (wknd) r = r ? `${r} · Weekend: ${wknd}` : `Weekend: ${wknd}`;
+  document.getElementById('accessHours').value = r;
+}
+function updateWeekendStyle() {
+  ['sat','sun'].forEach(d => {
+    const cb = document.getElementById(d+'OK');
+    const pill = document.getElementById(d+'Pill');
+    if (!cb || !pill) return;
+    pill.style.background  = cb.checked ? 'var(--green-light)' : 'white';
+    pill.style.borderColor = cb.checked ? 'var(--green)' : 'var(--gray-light)';
+  });
+}
+
+// =====================================================================
+// PHOTOS
+// =====================================================================
+const photos = [];
+const MAX_PHOTOS = 20;
+
+function handleDrop(e) {
+  e.preventDefault();
+  Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(addPhoto);
+}
+function handleFiles(e) {
+  Array.from(e.target.files).forEach(addPhoto);
+  e.target.value = '';
+}
+function addPhoto(file) {
+  if (photos.length >= MAX_PHOTOS) { showToast(`Maximum ${MAX_PHOTOS} photos`); return; }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    let url = e.target.result;
+    try { url = await correctOrientation(url); } catch(err){}
+    photos.push({ dataUrl:url, caption:file.name, timestamp:new Date().toLocaleString('en-AU') });
+    renderPhotos();
+    updateProgress();
+    showToast(`📸 Photo added (${photos.length}/${MAX_PHOTOS})`);
+  };
+  reader.readAsDataURL(file);
+}
+function renderPhotos() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = photos.map((p,i) => `
+    <div class="photo-thumb">
+      <img src="${p.dataUrl}" alt="Photo ${i+1}">
+      <button class="photo-remove-btn" onclick="removePhoto(${i})">×</button>
+    </div>`).join('');
+  document.getElementById('photoBadge').textContent = `${photos.length}/${MAX_PHOTOS}`;
+}
+function removePhoto(i) { photos.splice(i,1); renderPhotos(); updateProgress(); }
+
+async function correctOrientation(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img,0,0);
+      resolve(canvas.toDataURL('image/jpeg',0.92));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+// =====================================================================
+// MUD MAP — identical engine to audit app
+// =====================================================================
+let mapTool = 'pen', mapHistory = [], arrowTap = null;
+let tileOffX = 0, tileOffY = 0;
+let mapLat = null, mapLon = null, mapZoomLevel = 19;
+
+function setTool(t) {
+  mapTool = t; arrowTap = null;
+  const cfg = { pen:{el:'toolPen',bg:'var(--navy)'}, entry:{el:'toolEntry',bg:'#00875a'}, exit:{el:'toolExit',bg:'var(--red)'}, dot:{el:'toolDot',bg:'var(--blue)'}, pan:{el:'toolPan',bg:'var(--gray-mid)'} };
+  Object.entries(cfg).forEach(([name,c]) => {
+    const el = document.getElementById(c.el);
+    if (!el) return;
+    const on = name===t;
+    el.style.background = on ? c.bg : 'white';
+    el.style.color = on ? 'white' : c.bg;
+    el.style.opacity = on ? '1' : '0.55';
+  });
+  document.getElementById('drawCanvas').style.cursor = t==='pan'?'grab':'crosshair';
+}
+
+function initMap() {
+  const wrap = document.getElementById('mudmapWrap');
+  const dc   = document.getElementById('drawCanvas');
+  const ctx  = dc.getContext('2d');
+
+  function resize() {
+    const w = wrap.offsetWidth;
+    const snap = dc.toDataURL();
+    dc.width = w * devicePixelRatio; dc.height = w * devicePixelRatio;
+    dc.style.height = w+'px'; wrap.style.height = w+'px';
+    document.getElementById('mapPlaceholder').style.height = w+'px';
+    const tc = document.getElementById('tileCanvas');
+    tc.style.height = w+'px';
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    const img = new Image(); img.onload = ()=>ctx.drawImage(img,0,0,w,w); img.src = snap;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let drawing=false, panning=false, lx,ly,px,py,panSX,panSY;
+
+  function pos(e) {
+    const r = dc.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return [s.clientX-r.left, s.clientY-r.top];
+  }
+
+  function start(e) {
+    e.preventDefault();
+    [lx,ly] = pos(e);
+    if (mapTool==='pan') { panning=true; panSX=lx; panSY=ly; dc.style.cursor='grabbing'; return; }
+    if (mapTool==='dot') {
+      saveMapState();
+      ctx.beginPath(); ctx.arc(lx,ly,9,0,Math.PI*2); ctx.fillStyle='#0055a5'; ctx.fill();
+      ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); return;
+    }
+    if (mapTool==='entry'||mapTool==='exit') {
+      const color = mapTool==='entry'?'#00875a':'#cc0000';
+      const label = mapTool==='entry'?'IN':'OUT';
+      if (!arrowTap) {
+        arrowTap={x:lx,y:ly}; saveMapState();
+        ctx.beginPath(); ctx.arc(lx,ly,6,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+        ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+        showToast(`Tap end point for ${label} arrow`);
+      } else {
+        const fx=arrowTap.x,fy=arrowTap.y; arrowTap=null;
+        ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=5; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(lx,ly); ctx.stroke();
+        const ang = Math.atan2(ly-fy,lx-fx); const hl=22;
+        ctx.beginPath(); ctx.moveTo(lx,ly);
+        ctx.lineTo(lx-hl*Math.cos(ang-Math.PI/6),ly-hl*Math.sin(ang-Math.PI/6));
+        ctx.lineTo(lx-hl*Math.cos(ang+Math.PI/6),ly-hl*Math.sin(ang+Math.PI/6));
+        ctx.closePath(); ctx.fill();
+        const mx=(fx+lx)/2,my=(fy+ly)/2;
+        ctx.font='bold 13px Arial'; const tw=ctx.measureText(label).width;
+        ctx.fillStyle=color; ctx.fillRect(mx-tw/2-6,my-10,tw+12,20);
+        ctx.fillStyle='white'; ctx.fillText(label,mx-tw/2,my+4);
+        ctx.restore(); showToast(`${label} arrow placed`);
+      }
+      return;
+    }
+    drawing=true; px=lx; py=ly; saveMapState();
+  }
+
+  function draw(e) {
+    e.preventDefault();
+    if (mapTool==='pan'&&panning) {
+      const [x,y]=pos(e);
+      tileOffX+=x-panSX; tileOffY+=y-panSY; panSX=x; panSY=y;
+      document.getElementById('tileCanvas').style.transform=`translate(${tileOffX}px,${tileOffY}px)`;
+      return;
+    }
+    if (mapTool!=='pen'||!drawing) return;
+    const [x,y]=pos(e);
+    ctx.strokeStyle='#cc0000'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x,y); ctx.stroke();
+    [px,py]=[lx,ly]; [lx,ly]=[x,y];
+  }
+
+  function stop() {
+    if (drawing && mapTool==='pen' && lx!==undefined) {
+      const headLen=18, ang=Math.atan2(ly-py,lx-px);
+      ctx.save(); ctx.fillStyle='#cc0000';
+      ctx.beginPath(); ctx.moveTo(lx,ly);
+      ctx.lineTo(lx-headLen*Math.cos(ang-Math.PI/7),ly-headLen*Math.sin(ang-Math.PI/7));
+      ctx.lineTo(lx-headLen*Math.cos(ang+Math.PI/7),ly-headLen*Math.sin(ang+Math.PI/7));
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    drawing=false; panning=false;
+    document.getElementById('drawCanvas').style.cursor = mapTool==='pan'?'grab':'crosshair';
+  }
+
+  dc.addEventListener('mousedown',start); dc.addEventListener('mousemove',draw); dc.addEventListener('mouseup',stop);
+  dc.addEventListener('touchstart',start,{passive:false}); dc.addEventListener('touchmove',draw,{passive:false}); dc.addEventListener('touchend',stop);
+}
+
+function saveMapState() {
+  const dc = document.getElementById('drawCanvas');
+  mapHistory.push(dc.toDataURL());
+  if (mapHistory.length>30) mapHistory.shift();
+}
+function undoMap() {
+  if (!mapHistory.length) { showToast('Nothing to undo'); return; }
+  const dc=document.getElementById('drawCanvas'), ctx=dc.getContext('2d');
+  const img=new Image(); img.onload=()=>{ctx.clearRect(0,0,dc.width,dc.height);ctx.drawImage(img,0,0,dc.offsetWidth,dc.offsetHeight);}; img.src=mapHistory.pop();
+}
+function clearMap() { const dc=document.getElementById('drawCanvas'); dc.getContext('2d').clearRect(0,0,dc.width,dc.height); mapHistory=[]; arrowTap=null; showToast('Drawing cleared'); }
+function resetMap() {
+  clearMap();
+  const tc=document.getElementById('tileCanvas'), tctx=tc.getContext('2d');
+  tctx.clearRect(0,0,tc.width,tc.height); tc.style.transform=''; tileOffX=0; tileOffY=0; mapZoomLevel=19;
+  document.getElementById('mapPlaceholder').style.display='flex';
+  showToast('Map reset');
+}
+function mapZoom(d) {
+  if (mapLat===null){showToast('Load a map first');return;}
+  mapZoomLevel=Math.min(21,Math.max(15,mapZoomLevel+d));
+  const snap=document.getElementById('drawCanvas').toDataURL();
+  tileOffX=0;tileOffY=0;
+  document.getElementById('tileCanvas').style.transform='';
+  renderTiles(mapLat,mapLon,mapZoomLevel);
+  setTimeout(()=>{const dc=document.getElementById('drawCanvas'),ctx=dc.getContext('2d'),img=new Image();img.onload=()=>ctx.drawImage(img,0,0,dc.offsetWidth,dc.offsetHeight);img.src=snap;},1000);
+}
+
+function loadSatellite() {
+  const addr = document.getElementById('mudmapAddress').value.trim();
+  if (!addr) { showToast('Enter an address first'); return; }
+  showToast('🛰️ Loading satellite view...');
+  tileOffX=0;tileOffY=0;document.getElementById('tileCanvas').style.transform='';
+  const q = addr+', Australia';
+  if (window.google&&google.maps&&google.maps.Geocoder) {
+    new google.maps.Geocoder().geocode({address:q,region:'AU'},(res,st)=>{
+      if (st==='OK'&&res[0]) { const l=res[0].geometry.location; renderTiles(l.lat(),l.lng(),19); }
+      else nmFallback(q);
+    });
+  } else nmFallback(q);
+}
+function nmFallback(q) {
+  fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`)
+    .then(r=>r.json()).then(d=>{ if(d[0]) renderTiles(parseFloat(d[0].lat),parseFloat(d[0].lon),19); else showToast('Address not found'); })
+    .catch(()=>showToast('Address not found'));
+}
+function renderTiles(lat,lon,zoom) {
+  mapLat=lat; mapLon=lon; mapZoomLevel=zoom;
+  const wrap=document.getElementById('mudmapWrap'), tc=document.getElementById('tileCanvas'), tctx=tc.getContext('2d');
+  document.getElementById('mapPlaceholder').style.display='none';
+  const w=wrap.offsetWidth, tileSize=256, PAD=6;
+  const tilesX=Math.ceil(w/tileSize)+PAD*2, tilesY=tilesX;
+  const totalW=tilesX*tileSize, totalH=tilesY*tileSize;
+  const offL=-Math.floor((totalW-w)/2), offT=-Math.floor((totalH-w)/2);
+  wrap.style.height=w+'px'; tc.width=totalW; tc.height=totalH;
+  tc.style.cssText=`position:absolute;left:${offL}px;top:${offT}px;width:${totalW}px;height:${totalH}px;`;
+  tileOffX=0;tileOffY=0; tc.style.transform='';
+  const dc=document.getElementById('drawCanvas'),dctx=dc.getContext('2d');
+  dc.width=w*devicePixelRatio; dc.height=w*devicePixelRatio; dc.style.width='100%'; dc.style.height=w+'px'; dctx.scale(devicePixelRatio,devicePixelRatio);
+  tctx.fillStyle='#2a2a2a'; tctx.fillRect(0,0,totalW,totalH);
+  const n=Math.pow(2,zoom);
+  const tx=Math.floor((lon+180)/360*n), ty=Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n);
+  const sx=tx-Math.floor(tilesX/2), sy=ty-Math.floor(tilesY/2);
+  let loaded=0, total=tilesX*tilesY;
+  for(let i=0;i<tilesX;i++) for(let j=0;j<tilesY;j++) {
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ tctx.drawImage(img,i*tileSize,j*tileSize,tileSize,tileSize); if(++loaded===total) showToast('Map loaded — draw your route'); };
+    img.onerror=()=>{ loaded++; };
+    // *** GOOGLE SATELLITE TILES ONLY ***
+    img.src=`https://mt${(sx+i+sy+j)%4}.google.com/vt/lyrs=s&x=${sx+i}&y=${sy+j}&z=${zoom}`;
+  }
+}
+function getMapDataUrl() {
+  const dc=document.getElementById('drawCanvas'), tc=document.getElementById('tileCanvas');
+  const blank=document.createElement('canvas'); blank.width=dc.width; blank.height=dc.height;
+  if (dc.toDataURL()===blank.toDataURL()) return null;
+  const wrap=document.getElementById('mudmapWrap'), w=wrap.offsetWidth;
+  const out=document.createElement('canvas'); out.width=w*2; out.height=w*2;
+  const ctx=out.getContext('2d'); ctx.scale(2,2);
+  ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,w,w);
+  if (tc.width>0) {
+    const wr=wrap.getBoundingClientRect(), tr=tc.getBoundingClientRect();
+    ctx.drawImage(tc,0,0,tc.width,tc.height,tr.left-wr.left,tr.top-wr.top,tr.width,tr.height);
+  }
+  ctx.drawImage(dc,0,0,dc.width,dc.height,0,0,w,w);
+  return out.toDataURL('image/jpeg',0.9);
+}
+
+// =====================================================================
+// ADDRESS AUTOCOMPLETE — Google Places
+// =====================================================================
+let acTimer = null;
+function addrAutocomplete(input, dropId) {
+  const q = input.value.trim();
+  const drop = document.getElementById(dropId);
+  if (q.length<4){drop.style.display='none';return;}
+  clearTimeout(acTimer);
+  acTimer = setTimeout(()=>{
+    if (window.google&&google.maps&&google.maps.places) {
+      new google.maps.places.AutocompleteService().getPlacePredictions({input:q,componentRestrictions:{country:'au'},types:['address']},(preds,st)=>{
+        if (st!=='OK'||!preds){drop.style.display='none';return;}
+        drop._preds=preds;
+        drop.innerHTML=preds.map((p,i)=>`<div onclick="selectAddr(${i},'${dropId}')" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;color:#333;" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background='white'">📍 ${p.description}</div>`).join('');
+        drop.style.display='block';
+      });
+    }
+  },350);
+}
+function selectAddr(idx, dropId) {
+  const drop = document.getElementById(dropId);
+  const pred = drop._preds?.[idx];
+  if (!pred){drop.style.display='none';return;}
+  drop.style.display='none';
+  if (dropId==='mapSuggestions') {
+    document.getElementById('mudmapAddress').value=pred.description.split(',').slice(0,3).join(',');
+    setTimeout(loadSatellite,300); return;
+  }
+  new google.maps.places.PlacesService(new google.maps.Map(document.createElement('div'))).getDetails(
+    {placeId:pred.place_id,fields:['address_components','formatted_address']},
+    (place,st)=>{
+      if(st!=='OK'||!place) return;
+      const get=t=>place.address_components.find(c=>c.types.includes(t))?.long_name||'';
+      const getS=t=>place.address_components.find(c=>c.types.includes(t))?.short_name||'';
+      document.getElementById('siteAddress').value=[get('street_number'),get('route')].filter(Boolean).join(' ');
+      document.getElementById('suburb').value=get('locality')||get('sublocality');
+      document.getElementById('postcode').value=get('postal_code');
+      const sc=getS('administrative_area_level_1'), stEl=document.getElementById('state');
+      for(let i=0;i<stEl.options.length;i++){if(stEl.options[i].value===sc){stEl.selectedIndex=i;break;}}
+      syncMapAddress();
+      updateProgress();
+    }
+  );
+}
+document.addEventListener('click',e=>{
+  ['addrSuggestions','mapSuggestions'].forEach(id=>{const d=document.getElementById(id);if(d&&!d.contains(e.target))d.style.display='none';});
+});
+
+// =====================================================================
+// GPS
+// =====================================================================
+function getGPS() {
+  const st=document.getElementById('gpsStatus');
+  if(!navigator.geolocation){st.textContent='❌ Geolocation not supported';return;}
+  st.textContent='📡 Getting location...'; st.style.color='var(--amber)';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude:la,longitude:lo,accuracy:ac}=pos.coords;
+    st.textContent='Looking up address...';
+    try {
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${la}&lon=${lo}&zoom=18&addressdetails=1`,{headers:{'Accept-Language':'en-AU'}});
+      const d=await r.json(); const a=d.address;
+      document.getElementById('siteAddress').value=([a.house_number,a.road||a.street].filter(Boolean).join(' '))||'';
+      document.getElementById('suburb').value=a.suburb||a.city||a.town||'';
+      document.getElementById('postcode').value=a.postcode||'';
+      const sm={'Western Australia':'WA','New South Wales':'NSW','Victoria':'VIC','Queensland':'QLD','South Australia':'SA','Tasmania':'TAS','Northern Territory':'NT','Australian Capital Territory':'ACT'};
+      const sc=sm[a.state]||''; const se=document.getElementById('state');
+      for(let i=0;i<se.options.length;i++){if(se.options[i].value===sc){se.selectedIndex=i;break;}}
+      st.textContent=`✅ Address filled (±${Math.round(ac)}m) — verify before continuing`; st.style.color='var(--green)';
+      syncMapAddress();
+    } catch(e){st.textContent=`⚠️ GPS coords: ${la.toFixed(6)}, ${lo.toFixed(6)} — enter address manually`;st.style.color='var(--amber)';}
+  },err=>{
+    const m={1:'❌ Location access denied',2:'❌ Could not determine location',3:'❌ Request timed out'};
+    st.textContent=m[err.code]||'❌ Could not get location'; st.style.color='var(--red)';
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function syncMapAddress() {
+  const v=[document.getElementById('siteAddress').value,document.getElementById('suburb').value,document.getElementById('postcode').value].filter(Boolean).join(', ');
+  const m=document.getElementById('mudmapAddress');
+  if(m&&!m.value) m.value=v;
+}
+
+// =====================================================================
+// PROGRESS
+// =====================================================================
+function updateProgress() {
+  const required = ['customerName','assessDate','siteAddress','contactName','contactPhone','assessedBy'];
+  const filled = required.filter(id=>document.getElementById(id)?.value?.trim()).length;
+  const ynDone = Object.keys(ynValues).length;
+  const total = required.length + questions.length;
+  const pct = Math.round(((filled+ynDone)/total)*100);
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('progressLabel').textContent=pct+'% complete';
+}
+
+// =====================================================================
+// AUDITOR AUTOFILL
+// =====================================================================
+function autoFillAssessor(name) {
+  const a=ASSESSORS[name];
+  if(a) document.getElementById('assessorEmail').value=a.email;
+}
+
+// =====================================================================
+// COLLECT DATA
+// =====================================================================
+function collectData() {
+  const g=id=>document.getElementById(id)?.value||'';
+  return {
+    customerName: g('customerName'),
+    assessDate:   g('assessDate'),
+    siteAddress:  g('siteAddress'),
+    suburb:       g('suburb'),
+    state:        g('state'),
+    postcode:     g('postcode'),
+    accessHours:  g('accessHours'),
+    deliveryRequests: g('deliveryRequests'),
+    ynValues: {...ynValues},
+    contactName:  g('contactName'),
+    contactPhone: g('contactPhone'),
+    contactEmail: g('contactEmail'),
+    contactRole:  g('contactRole'),
+    assessNotes:  g('assessNotes'),
+    assessedBy:   g('assessedBy'),
+    assessorEmail:g('assessorEmail'),
+    photoCount:   photos.length,
+    formType:     'Packaged Site Assessment',
+    _savedAt:     new Date().toISOString(),
+  };
+}
+
+// =====================================================================
+// PDF GENERATION
+// =====================================================================
+async function generatePDF(returnDoc=false) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const d = collectData();
+  const margin=15, pageW=210, cW=pageW-margin*2;
+  let y=margin;
+  const NAVY=[0,52,102], BLUE=[0,85,165], BLUE_L=[232,242,251];
+  const GREEN=[0,135,90], RED=[192,57,43], GRAY=[108,117,125], GRAY_L=[240,242,244], WHITE=[255,255,255];
+
+  function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
+  function secHdr(t){chk(14);doc.setFillColor(...NAVY);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
+  function fRow(l,v,w=cW){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'—',w-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
+  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);doc.setFont('helvetica','normal');const a=doc.splitTextToSize(v1||'—',hw),b=doc.splitTextToSize(v2||'—',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
+  function ynRow(q,a){chk(8);const qW=cW-20,qL=doc.splitTextToSize(q,qW),rH=Math.max(7,qL.length*3.8+3);let bg,ac;if(a==='Y'){bg=[235,250,243];ac=GREEN;}else if(a==='N'){bg=[253,236,234];ac=RED;}else{bg=GRAY_L;ac=GRAY;}doc.setFillColor(...bg);doc.roundedRect(margin,y,cW,rH,1,1,'F');doc.setFillColor(...ac);doc.roundedRect(margin+cW-16,y+(rH-6)/2,14,6,1,1,'F');doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(a||'—',margin+cW-9,y+(rH-6)/2+4,{align:'center'});doc.setTextColor(40,50,60);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(qL,margin+3,y+4.5);y+=rH+2;}
+
+  // Header
+  doc.setFillColor(...NAVY); doc.rect(0,0,210,32,'F');
+  doc.setFillColor(...BLUE); doc.rect(0,28,210,4,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.text('BIOBLUE',margin,10);
+  doc.setFontSize(15); doc.setFont('helvetica','bold'); doc.text('Packaged Site Assessment',margin,18);
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.text('AdBlue\u00ae Packaged Products \u00b7 Site Evaluation',margin,24);
+  doc.text(d.assessDate?`Date: ${d.assessDate}`:'',pageW-margin,18,{align:'right'});
+  doc.text(d.customerName||'',pageW-margin,24,{align:'right'});
+  y=40;
+
+  // Section 1
+  twoRow('Customer / Business Name',d.customerName,'Date of Assessment',d.assessDate);
+  fRow('Site Address',[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', '));
+  twoRow('Access Hours',d.accessHours,'','');
+  if(d.deliveryRequests) fRow('Specific Delivery Requests',d.deliveryRequests);
+
+  // Section 2 — Questions
+  secHdr('SITE QUESTIONS');
+  questions.forEach(q=>{
+    if(q.showIf&&d.ynValues[q.showIf.id]!==q.showIf.val) return;
+    ynRow(q.text, d.ynValues[q.id]);
+  });
+
+  // Section 3 — Contact
+  secHdr('SITE CONTACT');
+  twoRow('Contact Name',d.contactName,'Phone',d.contactPhone);
+  twoRow('Email',d.contactEmail,'Role',d.contactRole);
+
+  // Section 4 — Mud Map
+  doc.addPage(); y=margin;
+  secHdr('SITE MUD MAP');
+  const mapData=getMapDataUrl();
+  if(mapData){
+    try{doc.addImage(mapData,'JPEG',margin,y,cW,cW,undefined,'FAST');y+=cW+4;}
+    catch(e){}
+  } else {
+    doc.setFillColor(...GRAY_L);doc.roundedRect(margin,y,cW,14,1,1,'F');
+    doc.setTextColor(...GRAY);doc.setFontSize(9);doc.setFont('helvetica','italic');
+    doc.text('No mud map completed for this assessment.',margin+4,y+9);y+=18;
+  }
+
+  // Section 5 — Photos
+  doc.addPage(); y=margin;
+  secHdr('SITE PHOTOS');
+  if(photos.length>0){
+    const gap=4, capH=10, pW=(cW-gap)/2;
+    for(let i=0;i<photos.length;i++){
+      const col=i%2;
+      if(col===0){if(y+pW*0.75+capH+10>280){doc.addPage();y=margin;}if(i>0)y+=4;}
+      const px2=margin+col*(pW+gap), py2=y, pH=pW*0.72;
+      try{doc.addImage(photos[i].dataUrl,'JPEG',px2,py2,pW,pH,undefined,'FAST');}catch(e){}
+      doc.setFillColor(...NAVY);doc.rect(px2,py2+pH,pW,capH,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(5.5);doc.setFont('helvetica','normal');
+      doc.text(`Photo ${i+1}`,px2+2,py2+pH+4);
+      doc.setFontSize(5);doc.setTextColor(180,210,255);doc.text(photos[i].timestamp||'',px2+2,py2+pH+8);
+      if(col===1||i===photos.length-1) y+=pH+capH+4;
+    }
+  } else {
+    doc.setFillColor(...GRAY_L);doc.roundedRect(margin,y,cW,14,1,1,'F');
+    doc.setTextColor(...GRAY);doc.setFontSize(9);doc.setFont('helvetica','italic');
+    doc.text('No photos attached to this assessment.',margin+4,y+9);y+=18;
+  }
+
+  // Section 6 — Notes + Sign-off
+  doc.addPage(); y=margin;
+  secHdr('NOTES & SIGN-OFF');
+  if(d.assessNotes) fRow('Assessment Notes',d.assessNotes);
+  twoRow('Assessed By',d.assessedBy,'Email',d.assessorEmail);
+
+  // Footer
+  const tp=doc.getNumberOfPages();
+  for(let p=1;p<=tp;p++){
+    doc.setPage(p);doc.setFillColor(...GRAY_L);doc.rect(0,287,210,10,'F');
+    doc.setTextColor(...GRAY);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+    doc.text('BioBlue Packaged Site Assessment \u00b7 Confidential \u00b7 V1 2026',margin,293);
+    doc.text(`Page ${p} of ${tp}`,pageW-margin,293,{align:'right'});
+    doc.text(new Date().toLocaleString('en-AU'),pageW/2,293,{align:'center'});
+  }
+
+  if(returnDoc) return doc;
+  doc.save(`BioBlue_Packaged_Assessment_${d.customerName.replace(/\s+/g,'_')||'Draft'}_${d.assessDate||'undated'}.pdf`);
+  showToast('📄 PDF downloaded!');
+}
+
+// =====================================================================
+// DRIVE UPLOAD + CLIENT RECORD UPDATE
+// =====================================================================
+async function getDriveToken() {
+  if(gdriveToken) return;
+  await new Promise((resolve,reject)=>{
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:GDRIVE_CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:r=>{if(r.access_token){gdriveToken=r.access_token;resolve();}else reject(new Error(r.error||'Sign-in failed'));},
+      error_callback:e=>reject(new Error(e.message||'Sign-in failed'))
+    });
+    client.requestAccessToken({prompt:''});
+  });
+}
+async function getFolderId() {
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const d=await r.json();
+  if(d.files&&d.files.length>0) return d.files[0].id;
+  const cr=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`,'Content-Type':'application/json'},body:JSON.stringify({name:GDRIVE_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'})});
+  return (await cr.json()).id;
+}
+
+async function updateClientRecord(d, folderId) {
+  // Find Client Records sheet
+  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${CLIENT_RECORDS_NAME}' and '${folderId}' in parents and trashed=false&fields=files(id)`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const sd=await sr.json();
+  if(!sd.files||!sd.files.length){console.warn('Client Records sheet not found');return;}
+  const fileId=sd.files[0].id;
+
+  // Download, update, re-upload
+  const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const ab=await dl.arrayBuffer();
+  const wb=XLSX.read(new Uint8Array(ab),{type:'array'});
+
+  // Update Client Records tab — find matching row or append
+  const ws=wb.Sheets['Client Records'];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+  const headers=rows[0]||[];
+  const nameCol=headers.indexOf('Billing Entity');
+  const addrCol=headers.indexOf('Street Address');
+  const pkgCol=headers.indexOf('Pkg Assessment ✓');
+  const notesCol=headers.indexOf('Notes Log');
+
+  // Find existing row or create new one
+  let rowIdx=-1;
+  for(let i=1;i<rows.length;i++){
+    if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+  }
+
+  const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\n${d.assessNotes||'Assessment completed.'}`;
+
+  if(rowIdx>-1){
+    // Update existing row
+    if(pkgCol>-1) rows[rowIdx][pkgCol]='✓';
+    if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
+  } else {
+    // Append new row — generate client ID
+    const existingIds=rows.slice(1).map(r=>r[0]).filter(Boolean);
+    const maxId=existingIds.reduce((m,id)=>{const n=parseInt((id+'').replace('BB-',''));return n>m?n:m;},0);
+    const newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    const newRow=new Array(headers.length).fill('');
+    const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
+    set('Client ID',newId); set('Billing Entity',d.customerName);
+    set('Street Address',d.siteAddress); set('Suburb',d.suburb); set('State',d.state); set('Postcode',d.postcode);
+    set('Contact Name',d.contactName); set('Contact Mobile',d.contactPhone); set('Contact Email',d.contactEmail);
+    set('Pkg Assessment ✓','✓');
+    set('Created Date',new Date().toLocaleDateString('en-AU')); set('Created By',d.assessedBy);
+    set('Notes Log',noteEntry);
+    rows.push(newRow);
+  }
+
+  // Also update Notes Log tab
+  const nws=wb.Sheets['Notes Log'];
+  if(nws){
+    const nrows=XLSX.utils.sheet_to_json(nws,{header:1});
+    nrows.push([
+      rowIdx>-1?rows[rowIdx][headers.indexOf('Client ID')]:'',
+      d.customerName, '', new Date().toLocaleString('en-AU'),
+      'Packaged Assessment', d.assessedBy, d.assessNotes||'Assessment completed.'
+    ]);
+    wb.Sheets['Notes Log']=XLSX.utils.aoa_to_sheet(nrows);
+  }
+
+  const newWs=XLSX.utils.aoa_to_sheet(rows);
+  newWs['!cols']=headers.map((h,i)=>({wch:i===notesCol?60:i<4?20:16}));
+  newWs['!freeze']={xSplit:0,ySplit:1};
+  wb.Sheets['Client Records']=newWs;
+
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
+  form.append('file',blob,CLIENT_RECORDS_NAME);
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+}
+
+async function downloadPDF() {
+  showToast('⏳ Generating PDF...');
+  try { await generatePDF(false); } catch(e){ showToast('❌ '+e.message); }
+}
+
+async function uploadAndSend() {
+  const d=collectData();
+  if(!d.customerName.trim()){showToast('⚠️ Customer name required');return;}
+  if(!d.assessDate){showToast('⚠️ Date required');return;}
+  if(!d.contactName.trim()){showToast('⚠️ Contact name required');return;}
+  if(!d.assessedBy){showToast('⚠️ Please select who conducted the assessment');return;}
+
+  showToast('⏳ Generating PDF...');
+  const pdfDoc=await generatePDF(true);
+  const pdfBlob=pdfDoc.output('blob');
+  const baseName=`BioBlue_Packaged_Assessment_${d.customerName.replace(/\s+/g,'_')}_${d.assessDate||'undated'}`;
+
+  try {
+    showToast('☁️ Connecting to Google...');
+    await getDriveToken();
+    const folderId=await getFolderId();
+
+    // Upload PDF
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[folderId]})],{type:'application/json'}));
+    form.append('file',pdfBlob,baseName+'.pdf');
+    const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    const uploaded=await up.json();
+    let driveLink=uploaded.webViewLink||'';
+    showToast('✅ PDF uploaded!');
+
+    // Update Client Record
+    showToast('📊 Updating client record...');
+    await updateClientRecord(d, folderId);
+    showToast('✅ Client record updated!');
+
+    document.getElementById('modalMsg').textContent=`✅ Assessment submitted!\n\n☁️ PDF uploaded to Google Drive\n📊 Client record updated\n${driveLink?'\nDrive link:\n'+driveLink:''}`;
+    document.getElementById('modal').classList.add('active');
+
+  } catch(e) {
+    gdriveToken=null;
+    // Fallback — save to device
+    const url=URL.createObjectURL(pdfBlob);
+    const a=document.createElement('a'); a.href=url; a.download=baseName+'.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    document.getElementById('modal').classList.add('active');
+  }
+}
+
+// =====================================================================
+// CLEAR FORM
+// =====================================================================
+function confirmClear() {
+  if(confirm('Clear all form data?')) { clearAll(); showToast('✅ Form cleared'); }
+}
+function clearAll() {
+  ['customerName','assessDate','siteAddress','suburb','postcode','deliveryRequests',
+   'contactName','contactPhone','contactEmail','contactRole','assessNotes','assessorEmail'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('state').selectedIndex=0;
+  document.getElementById('assessedBy').selectedIndex=0;
+  document.getElementById('opensTime').value='';
+  document.getElementById('closesTime').value='';
+  document.getElementById('additionalHours').value='';
+  document.getElementById('open24').checked=false;
+  document.getElementById('satOK').checked=false;
+  document.getElementById('sunOK').checked=false;
+  document.getElementById('accessHours').value='';
+  updateWeekendStyle();
+  for(const k in ynValues) delete ynValues[k];
+  photos.length=0; renderPhotos();
+  resetMap();
+  renderQuestions();
+  updateProgress();
+}
+
+// =====================================================================
+// SECTION TOGGLE
+// =====================================================================
+function toggleSection(id) {
+  const b=document.getElementById(id), t=document.getElementById('toggle-'+id);
+  if(!b) return;
+  const c=b.classList.toggle('collapsed');
+  if(t) t.textContent=c?'▶':'▼';
+}
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  try{if(typeof emailjs!=='undefined') emailjs.init('VOzIE82-mIbrEcuPK');}catch(e){}
+  renderQuestions();
+  initMap();
+  setTool('pan');
+  document.getElementById('assessDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('assessedBy').value='Michael Hodnett';
+  autoFillAssessor('Michael Hodnett');
+  // Sync address to map
+  ['siteAddress','suburb','postcode'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',syncMapAddress);
+  });
+  updateProgress();
+});
+</script>
+</body>
+</html>
