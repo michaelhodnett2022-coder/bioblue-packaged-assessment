@@ -502,15 +502,17 @@ const ynValues = {};
 function renderQuestions() {
   const container = document.getElementById('yn-group');
   container.innerHTML = '';
+  let visibleNum = 0; // Dynamic counter — always 1,2,3... regardless of hidden questions
   questions.forEach(q => {
     if (q.showIf) {
       if (ynValues[q.showIf.id] !== q.showIf.val) return;
     }
+    visibleNum++;
     const div = document.createElement('div');
     div.className = 'yn-item';
     div.id = 'yn-' + q.id;
     div.innerHTML = `
-      <div class="yn-question"><span class="yn-num">${q.num}</span>${q.text}</div>
+      <div class="yn-question"><span class="yn-num">${visibleNum}</span>${q.text}</div>
       <div class="yn-controls">
         <button class="yn-btn" onclick="setYN('${q.id}','Y')">Y</button>
         <button class="yn-btn" onclick="setYN('${q.id}','N')">N</button>
@@ -756,7 +758,17 @@ function saveMapState() {
 function undoMap() {
   if (!mapHistory.length) { showToast('Nothing to undo'); return; }
   const dc=document.getElementById('drawCanvas'), ctx=dc.getContext('2d');
-  const img=new Image(); img.onload=()=>{ctx.clearRect(0,0,dc.width,dc.height);ctx.drawImage(img,0,0,dc.offsetWidth,dc.offsetHeight);}; img.src=mapHistory.pop();
+  const img=new Image();
+  img.onload=()=>{
+    // Reset transform to identity — bypasses DPR scale applied on init
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, dc.width, dc.height);
+    ctx.drawImage(img, 0, 0, dc.width, dc.height);
+    ctx.restore();
+    // ctx.restore() brings back DPR scale so subsequent drawing still works
+  };
+  img.src=mapHistory.pop();
 }
 function clearMap() { const dc=document.getElementById('drawCanvas'); dc.getContext('2d').clearRect(0,0,dc.width,dc.height); mapHistory=[]; arrowTap=null; showToast('Drawing cleared'); }
 function resetMap() {
@@ -976,7 +988,7 @@ async function generatePDF(returnDoc=false) {
   const d = collectData();
   const margin=15, pageW=210, cW=pageW-margin*2;
   let y=margin;
-  const NAVY=[0,52,102], BLUE=[0,85,165], BLUE_L=[232,242,251];
+  const NAVY=[0,107,71], BLUE=[0,135,90], BLUE_L=[227,245,238];
   const GREEN=[0,135,90], RED=[192,57,43], GRAY=[108,117,125], GRAY_L=[240,242,244], WHITE=[255,255,255];
 
   function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
