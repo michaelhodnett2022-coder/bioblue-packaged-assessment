@@ -311,6 +311,23 @@
       <div class="section-toggle" id="toggle-s3">▼</div>
     </div>
     <div class="section-body" id="s3">
+
+      <!-- VEHICLE SIZE — structured select, not Y/N -->
+      <div class="field-group" style="margin-bottom:16px;">
+        <label class="field-label required">Maximum Delivery Vehicle Size</label>
+        <select id="maxVehicleSize" onchange="updateProgress()" style="width:100%;">
+          <option value="">— Select maximum vehicle size —</option>
+          <option value="Ute / Small Van (≤1.5T)">Ute / Small Van (≤1.5T)</option>
+          <option value="2T Light Rigid">2T Light Rigid</option>
+          <option value="4.5T Medium Rigid">4.5T Medium Rigid</option>
+          <option value="8T Heavy Rigid">8T Heavy Rigid</option>
+          <option value="Semi-trailer">Semi-trailer</option>
+          <option value="B-Double">B-Double</option>
+          <option value="Any size">Any size</option>
+        </select>
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">What is the largest vehicle that can safely access and manoeuvre on site?</div>
+      </div>
+
       <div id="yn-group"></div>
     </div>
   </div>
@@ -934,7 +951,7 @@ function syncMapAddress() {
 // PROGRESS
 // =====================================================================
 function updateProgress() {
-  const required = ['customerName','assessDate','siteAddress','contactName','contactPhone','assessedBy'];
+  const required = ['customerName','assessDate','siteAddress','contactName','contactPhone','assessedBy','maxVehicleSize'];
   const filled = required.filter(id=>document.getElementById(id)?.value?.trim()).length;
   const ynDone = Object.keys(ynValues).length;
   const total = required.length + questions.length;
@@ -965,6 +982,7 @@ function collectData() {
     postcode:     g('postcode'),
     accessHours:  g('accessHours'),
     deliveryRequests: g('deliveryRequests'),
+    maxVehicleSize:   g('maxVehicleSize'),
     ynValues: {...ynValues},
     contactName:  g('contactName'),
     contactPhone: g('contactPhone'),
@@ -1015,6 +1033,7 @@ async function generatePDF(returnDoc=false) {
 
   // Section 2 — Questions
   secHdr('SITE QUESTIONS');
+  if(d.maxVehicleSize) fRow('Maximum Delivery Vehicle Size', d.maxVehicleSize);
   questions.forEach(q=>{
     if(q.showIf&&d.ynValues[q.showIf.id]!==q.showIf.val) return;
     ynRow(q.text, d.ynValues[q.id]);
@@ -1128,7 +1147,7 @@ async function updateClientRecord(d, folderId) {
     if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
   }
 
-  const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\n${d.assessNotes||'Assessment completed.'}`;
+  const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\nMax Vehicle: ${d.maxVehicleSize||'—'} | Forklift: ${d.ynValues.forklift||'—'} | Clear Access: ${d.ynValues.clearAccess||'—'}\n${d.assessNotes||'Assessment completed.'}`;
 
   if(rowIdx>-1){
     // Update existing row
@@ -1245,6 +1264,7 @@ function clearAll() {
    'contactName','contactPhone','contactEmail','contactRole','assessNotes','assessorEmail'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
+  const mvs=document.getElementById('maxVehicleSize'); if(mvs) mvs.selectedIndex=0;
   document.getElementById('state').selectedIndex=0;
   document.getElementById('assessedBy').selectedIndex=0;
   document.getElementById('opensTime').value='';
