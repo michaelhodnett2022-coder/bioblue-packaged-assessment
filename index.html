@@ -15,6 +15,11 @@
   :root {
     --navy:#003466;--blue:#0055a5;--blue-bright:#0077cc;--blue-light:#e8f2fb;--blue-pale:#f4f9ff;
     --green:#00875a;--green-light:#e3f5ee;--red:#c0392b;--red-light:#fdecea;
+  .contact-card{border:1.5px solid #b7e5d3;border-radius:10px;overflow:hidden;margin-bottom:12px;}
+  .contact-card-hdr{background:var(--green-light);border-bottom:1.5px solid #b7e5d3;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .contact-card-hdr span{font-size:11px;font-weight:700;color:#004d30;text-transform:uppercase;letter-spacing:0.5px;}
+  .contact-card-hdr .req-badge{font-size:10px;font-weight:700;background:#006b47;color:white;border-radius:20px;padding:2px 8px;}
+  .contact-card-body{padding:14px 14px 4px;}
     --amber:#e67e22;--orange-light:#fef5e7;
     --gray-dark:#2c3e50;--gray-mid:#6b7280;--gray-light:#e5e7eb;--gray-pale:#f9fafb;
     --shadow:0 2px 12px rgba(0,52,102,0.10);--shadow-lg:0 8px 32px rgba(0,52,102,0.15);
@@ -155,6 +160,9 @@
 </div>
 
 <div class="main-content">
+<input type="hidden" id="_siteLocationName">
+<input type="hidden" id="_descriptor">
+<input type="hidden" id="_generatedSiteName">
   <!-- CLIENT BANNER -->
   <div id="clientBanner" style="display:none;align-items:center;gap:12px;
       background:#e3f5ee;border:1.5px solid #00875a;
@@ -332,37 +340,82 @@
     </div>
   </div>
 
-  <!-- SECTION 4: SITE CONTACT -->
+  <!-- SECTION 4: CONTACTS -->
   <div class="section-card">
     <div class="section-header" onclick="toggleSection('s4')">
-      <div class="section-header-icon">👤</div>
+      <div class="section-header-icon">👥</div>
       <div class="section-header-text">
-        <h2>4. Site Contact</h2>
-        <p>Primary contact for this site</p>
+        <h2>4. Contacts</h2>
+        <p>Business / site contact and logistics — both required</p>
       </div>
       <div class="section-toggle" id="toggle-s4">▼</div>
     </div>
     <div class="section-body" id="s4">
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label required">Contact Name</label>
-          <input type="text" id="contactName" placeholder="Full name" oninput="updateProgress()">
+
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Business / Site Contact</span>
+          <span class="req-badge">Required</span>
         </div>
-        <div class="field-group">
-          <label class="field-label required">Contact Phone</label>
-          <input type="tel" id="contactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="bizContactName" placeholder="Full name" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="bizContactRole" placeholder="e.g. Site Manager" oninput="updateProgress()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="bizContactEmail" placeholder="name@company.com.au" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="bizContactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+            </div>
+          </div>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label">Contact Email</label>
-          <input type="email" id="contactEmail" placeholder="contact@company.com">
+
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Logistics Contact</span>
+          <span class="req-badge">Required</span>
         </div>
-        <div class="field-group">
-          <label class="field-label">Title / Role</label>
-          <input type="text" id="contactRole" placeholder="">
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="logContactName" placeholder="Full name" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="logContactRole" placeholder="e.g. Transport Manager" oninput="updateProgress()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="logContactEmail" placeholder="name@company.com.au" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="logContactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Proof of Delivery (POD) email</label>
+        <input type="email" id="podEmail" placeholder="e.g. pod@company.com.au">
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">Shared with Admin form — fills automatically if already entered</div>
+      </div>
+
     </div>
   </div>
 
@@ -951,7 +1004,10 @@ function syncMapAddress() {
 // PROGRESS
 // =====================================================================
 function updateProgress() {
-  const required = ['customerName','assessDate','siteAddress','contactName','contactPhone','assessedBy','maxVehicleSize'];
+  const required = ['customerName','assessDate','siteAddress',
+                    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+                    'logContactName','logContactRole','logContactEmail','logContactPhone',
+                    'assessedBy','maxVehicleSize'];
   const filled = required.filter(id=>document.getElementById(id)?.value?.trim()).length;
   const ynDone = Object.keys(ynValues).length;
   const total = required.length + questions.length;
@@ -975,21 +1031,37 @@ function collectData() {
   const g=id=>document.getElementById(id)?.value||'';
   return {
     customerName: g('customerName'),
+    billingEntity:g('customerName'),
     assessDate:   g('assessDate'),
     siteAddress:  g('siteAddress'),
     suburb:       g('suburb'),
     state:        g('state'),
     postcode:     g('postcode'),
+    _siteLocationName: g('_siteLocationName'),
+    _descriptor:       g('_descriptor'),
+    generatedSiteName: g('_generatedSiteName'),
+    siteName:          g('_generatedSiteName'),
     accessHours:  g('accessHours'),
     deliveryRequests: g('deliveryRequests'),
     maxVehicleSize:   g('maxVehicleSize'),
     ynValues: {...ynValues},
-    contactName:  g('contactName'),
-    contactPhone: g('contactPhone'),
-    contactEmail: g('contactEmail'),
-    contactRole:  g('contactRole'),
+    bizContactName:  g('bizContactName'),
+    bizContactRole:  g('bizContactRole'),
+    bizContactEmail: g('bizContactEmail'),
+    bizContactPhone: g('bizContactPhone'),
+    logContactName:  g('logContactName'),
+    logContactRole:  g('logContactRole'),
+    logContactEmail: g('logContactEmail'),
+    logContactPhone: g('logContactPhone'),
+    podEmail:        g('podEmail'),
+    // Backward compat aliases
+    contactName:  g('bizContactName'),
+    contactPhone: g('bizContactPhone'),
+    contactEmail: g('bizContactEmail'),
+    contactRole:  g('bizContactRole'),
     assessNotes:  g('assessNotes'),
     assessedBy:   g('assessedBy'),
+    bdmName:      g('assessedBy'),
     assessorEmail:g('assessorEmail'),
     photoCount:   photos.length,
     formType:     'Packaged Site Assessment',
@@ -1000,49 +1072,91 @@ function collectData() {
 // =====================================================================
 // PDF GENERATION
 // =====================================================================
+// =====================================================================
+// STANDARD PDF HEADER (softened green ~35%)
+// =====================================================================
+function drawStdHeader(doc,d,formLabel,MC,ML){
+  const margin=15,pW=210,cW=pW-margin*2;
+  const NAVY=[0,52,102],BLUE=[0,85,165],GRAY2=[108,117,125],BLK=[30,40,50];
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
+  doc.text('Bio',margin,9);const bW=doc.getTextWidth('Bio');
+  doc.setTextColor(...BLUE);doc.text('Blue',margin+bW,9);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY2);
+  doc.text('  \u00b7  '+formLabel,margin+bW+doc.getTextWidth('Blue'),9);
+  const dv=d.assessDate||d.formDate||'';
+  if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-margin,9,{align:'right'});}
+  doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(margin,11.5,pW-margin,11.5);
+  doc.setFillColor(...MC);doc.rect(margin,13,cW,14,'F');
+  doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
+  doc.text(formLabel.toUpperCase(),margin+3,17.5);
+  const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
+  const by=28.5;doc.setFillColor(...ML);doc.rect(margin,by,cW,37,'F');
+  const bm=margin+3,hw=(cW-8)/2;
+  const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
+  const val=(t,x,y)=>{doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);doc.text((t||'\u2014').toString().substring(0,42),x,y);};
+  const dv2=(y)=>{doc.setDrawColor(200,210,220);doc.setLineWidth(0.2);doc.line(margin+2,y,pW-margin-2,y);};
+  lbl('BILLING ENTITY',bm,by+3);val(d.billingEntity||d.customerName,bm,by+7);
+  lbl('DESCRIPTOR',bm+hw+4,by+3);val(d._descriptor,bm+hw+4,by+7);
+  dv2(by+9.5);
+  lbl('SITE LOCATION / END USER',bm,by+12.5);val(d._siteLocationName,bm,by+16.5);
+  lbl('ASSESSED BY',bm+hw+4,by+12.5);val(d.assessedBy||'\u2014',bm+hw+4,by+16.5);
+  dv2(by+19);lbl('ADDRESS',bm,by+22);
+  const addr=[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', ');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+  doc.text((addr||'\u2014').substring(0,65),bm,by+26);
+  dv2(by+28.5);lbl('BUSINESS CONTACT',bm,by+31.5);
+  const bizN=d.bizContactName||d.contactName||'\u2014';
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+  doc.text(bizN.substring(0,28),bm,by+35.5);
+  const bizP=d.bizContactPhone||d.contactPhone||'';
+  const bizE=d.bizContactEmail||d.contactEmail||'';
+  doc.setFont('helvetica','normal');doc.setFontSize(7);
+  if(bizP){doc.setTextColor(...GRAY2);doc.text(bizP,bm+48,by+35.5);}
+  if(bizE){doc.setTextColor(...BLUE);doc.text(bizE.substring(0,32),bm+74,by+35.5);}
+  return by+37+4;
+}
+
 async function generatePDF(returnDoc=false) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const d = collectData();
   const margin=15, pageW=210, cW=pageW-margin*2;
   let y=margin;
-  const NAVY=[0,107,71], BLUE=[0,135,90], BLUE_L=[227,245,238];
+  const GREEN_S=[89,159,135], GREEN_L=[227,245,238];
   const GREEN=[0,135,90], RED=[192,57,43], GRAY=[108,117,125], GRAY_L=[240,242,244], WHITE=[255,255,255];
 
   function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
-  function secHdr(t){chk(14);doc.setFillColor(...NAVY);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
-  function fRow(l,v,w=cW){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'—',w-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
-  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);doc.setFont('helvetica','normal');const a=doc.splitTextToSize(v1||'—',hw),b=doc.splitTextToSize(v2||'—',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
-  function ynRow(q,a){chk(8);const qW=cW-20,qL=doc.splitTextToSize(q,qW),rH=Math.max(7,qL.length*3.8+3);let bg,ac;if(a==='Y'){bg=[235,250,243];ac=GREEN;}else if(a==='N'){bg=[253,236,234];ac=RED;}else{bg=GRAY_L;ac=GRAY;}doc.setFillColor(...bg);doc.roundedRect(margin,y,cW,rH,1,1,'F');doc.setFillColor(...ac);doc.roundedRect(margin+cW-16,y+(rH-6)/2,14,6,1,1,'F');doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(a||'—',margin+cW-9,y+(rH-6)/2+4,{align:'center'});doc.setTextColor(40,50,60);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(qL,margin+3,y+4.5);y+=rH+2;}
+  function secHdr(t){chk(14);doc.setFillColor(...GREEN_S);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
+  function fRow(l,v,w=cW){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'\u2014',w-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
+  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);doc.setFont('helvetica','normal');const a=doc.splitTextToSize(v1||'\u2014',hw),b=doc.splitTextToSize(v2||'\u2014',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
+  function ynRow(q,a){chk(8);const qW=cW-20,qL=doc.splitTextToSize(q,qW),rH=Math.max(7,qL.length*3.8+3);let bg,ac;if(a==='Y'){bg=[235,250,243];ac=GREEN;}else if(a==='N'){bg=[253,236,234];ac=RED;}else{bg=GRAY_L;ac=GRAY;}doc.setFillColor(...bg);doc.roundedRect(margin,y,cW,rH,1,1,'F');doc.setFillColor(...ac);doc.roundedRect(margin+cW-16,y+(rH-6)/2,14,6,1,1,'F');doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(a||'\u2014',margin+cW-9,y+(rH-6)/2+4,{align:'center'});doc.setTextColor(40,50,60);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(qL,margin+3,y+4.5);y+=rH+2;}
 
-  // Header
-  doc.setFillColor(...NAVY); doc.rect(0,0,210,32,'F');
-  doc.setFillColor(...BLUE); doc.rect(0,28,210,4,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.text('BIOBLUE',margin,10);
-  doc.setFontSize(15); doc.setFont('helvetica','bold'); doc.text('Packaged Site Assessment',margin,18);
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.text('AdBlue\u00ae Packaged Products \u00b7 Site Evaluation',margin,24);
-  doc.text(d.assessDate?`Date: ${d.assessDate}`:'',pageW-margin,18,{align:'right'});
-  doc.text(d.customerName||'',pageW-margin,24,{align:'right'});
-  y=40;
+  y = drawStdHeader(doc, d, 'Packaged Site Assessment', [89,159,135], [227,245,238]);
 
   // Section 1
+  secHdr('1. SITE DETAILS');
   twoRow('Customer / Business Name',d.customerName,'Date of Assessment',d.assessDate);
   fRow('Site Address',[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', '));
   twoRow('Access Hours',d.accessHours,'','');
   if(d.deliveryRequests) fRow('Specific Delivery Requests',d.deliveryRequests);
 
   // Section 2 — Questions
-  secHdr('SITE QUESTIONS');
+  secHdr('2. SITE QUESTIONS');
   if(d.maxVehicleSize) fRow('Maximum Delivery Vehicle Size', d.maxVehicleSize);
   questions.forEach(q=>{
     if(q.showIf&&d.ynValues[q.showIf.id]!==q.showIf.val) return;
     ynRow(q.text, d.ynValues[q.id]);
   });
 
-  // Section 3 — Contact
-  secHdr('SITE CONTACT');
-  twoRow('Contact Name',d.contactName,'Phone',d.contactPhone);
-  twoRow('Email',d.contactEmail,'Role',d.contactRole);
+  // Section 3 — Contacts
+  secHdr('3. CONTACTS');
+  twoRow('Business / Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
+  twoRow('Phone',d.bizContactPhone||'\u2014','Email',d.bizContactEmail||'\u2014');
+  twoRow('Logistics Contact',d.logContactName||'\u2014','Title / Role',d.logContactRole||'\u2014');
+  twoRow('Phone',d.logContactPhone||'\u2014','Email',d.logContactEmail||'\u2014');
+  if(d.podEmail) fRow('Proof of Delivery (POD) email', d.podEmail);
 
   // Section 4 — Mud Map
   doc.addPage(); y=margin;
@@ -1096,7 +1210,7 @@ async function generatePDF(returnDoc=false) {
   }
 
   if(returnDoc) return doc;
-  doc.save(`BioBlue_Packaged_Assessment_${d.customerName.replace(/\s+/g,'_')||'Draft'}_${d.assessDate||'undated'}.pdf`);
+  doc.save(((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Packaged.pdf');
   showToast('📄 PDF downloaded!');
 }
 
@@ -1162,7 +1276,12 @@ async function updateClientRecord(d, folderId) {
     const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
     set('Client ID',newId); set('Billing Entity',d.customerName);
     set('Street Address',d.siteAddress); set('Suburb',d.suburb); set('State',d.state); set('Postcode',d.postcode);
-    set('Contact Name',d.contactName); set('Contact Mobile',d.contactPhone); set('Contact Email',d.contactEmail);
+    set('Business Contact Name',d.bizContactName); set('Business Contact Role',d.bizContactRole);
+    set('Business Contact Email',d.bizContactEmail); set('Business Contact Phone',d.bizContactPhone);
+    set('Logistics Name',d.logContactName); set('Logistics Role',d.logContactRole);
+    set('Logistics Email',d.logContactEmail); set('Logistics Phone',d.logContactPhone);
+    set('POD Email',d.podEmail);
+    set('Contact Name',d.bizContactName); set('Contact Mobile',d.bizContactPhone); set('Contact Email',d.bizContactEmail);
     set('Pkg Assessment ✓','✓');
     set('Created Date',new Date().toLocaleDateString('en-AU')); set('Created By',d.assessedBy);
     set('Notes Log',noteEntry);
@@ -1203,13 +1322,20 @@ async function uploadAndSend() {
   const d=collectData();
   if(!d.customerName.trim()){showToast('⚠️ Customer name required');return;}
   if(!d.assessDate){showToast('⚠️ Date required');return;}
-  if(!d.contactName.trim()){showToast('⚠️ Contact name required');return;}
   if(!d.assessedBy){showToast('⚠️ Please select who conducted the assessment');return;}
+  if(!d.bizContactName.trim()){showToast('⚠️ Business Contact — Full Name required');return;}
+  if(!d.bizContactRole.trim()){showToast('⚠️ Business Contact — Title / Role required');return;}
+  if(!d.bizContactEmail.trim()){showToast('⚠️ Business Contact — Email required');return;}
+  if(!d.bizContactPhone.trim()){showToast('⚠️ Business Contact — Phone required');return;}
+  if(!d.logContactName.trim()){showToast('⚠️ Logistics Contact — Full Name required');return;}
+  if(!d.logContactRole.trim()){showToast('⚠️ Logistics Contact — Title / Role required');return;}
+  if(!d.logContactEmail.trim()){showToast('⚠️ Logistics Contact — Email required');return;}
+  if(!d.logContactPhone.trim()){showToast('⚠️ Logistics Contact — Phone required');return;}
 
   showToast('⏳ Generating PDF...');
   const pdfDoc=await generatePDF(true);
   const pdfBlob=pdfDoc.output('blob');
-  const baseName=`BioBlue_Packaged_Assessment_${d.customerName.replace(/\s+/g,'_')}_${d.assessDate||'undated'}`;
+  const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Packaged';
 
   try {
     showToast('☁️ Connecting to Google...');
@@ -1261,7 +1387,10 @@ function confirmClear() {
 }
 function clearAll() {
   ['customerName','assessDate','siteAddress','suburb','postcode','deliveryRequests',
-   'contactName','contactPhone','contactEmail','contactRole','assessNotes','assessorEmail'].forEach(id=>{
+   'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+   'logContactName','logContactRole','logContactEmail','logContactPhone',
+   'podEmail','_siteLocationName','_descriptor','_generatedSiteName',
+   'assessNotes','assessorEmail'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   const mvs=document.getElementById('maxVehicleSize'); if(mvs) mvs.selectedIndex=0;
@@ -1406,19 +1535,22 @@ async function fetchClientDetails(clientId) {
 
     const fields = {
       customerName:  get('Billing Entity'),
-      companyName:   get('Billing Entity'),
       siteName:      get('Site Name') || get('Billing Entity'),
       siteAddress:   get('Street Address'),
       suburb:        get('Suburb'),
       postcode:      get('Postcode'),
-      contactName:   get('Contact Name'),
-      contactRole:   get('Contact Title'),
-      contactMobile: get('Contact Mobile'),
-      contactEmail:  get('Contact Email'),
-      contactPhone:  get('Contact Mobile'),
-      siteContact:   get('Contact Name'),
-      siteMobile:    get('Contact Mobile'),
-      siteEmail:     get('Contact Email'),
+      _siteLocationName: get('Site Location Name'),
+      _descriptor:       get('Descriptor'),
+      _generatedSiteName:get('Site Name'),
+      bizContactName:  get('Business Contact Name') || get('Contact Name'),
+      bizContactRole:  get('Business Contact Role') || get('Contact Title'),
+      bizContactEmail: get('Business Contact Email')|| get('Contact Email'),
+      bizContactPhone: get('Business Contact Phone')|| get('Contact Mobile'),
+      logContactName:  get('Logistics Name'),
+      logContactRole:  get('Logistics Role'),
+      logContactEmail: get('Logistics Email'),
+      logContactPhone: get('Logistics Phone'),
+      podEmail:        get('POD Email'),
     };
 
     Object.entries(fields).forEach(([id, val]) => {
