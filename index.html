@@ -286,14 +286,20 @@
             <input type="checkbox" id="open24" onchange="toggle24(this)">
             <span class="open24-badge">Open 24 Hours</span>
           </label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-            <div id="satPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('satOK').click()">
-              <input type="checkbox" id="satOK" onchange="updateHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
-              <span style="font-size:13px;font-weight:500;color:var(--gray-dark);">Saturday<br>delivery OK</span>
+          <div style="margin-top:10px;">
+            <div class="yn-item" id="yn-satDelivery">
+              <div class="yn-question">Saturday delivery OK?</div>
+              <div class="yn-controls">
+                <button class="yn-btn" onclick="setWeekendYN('sat','Y')">Y</button>
+                <button class="yn-btn" onclick="setWeekendYN('sat','N')">N</button>
+              </div>
             </div>
-            <div id="sunPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('sunOK').click()">
-              <input type="checkbox" id="sunOK" onchange="updateHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
-              <span style="font-size:13px;font-weight:500;color:var(--gray-dark);">Sunday<br>delivery OK</span>
+            <div class="yn-item" id="yn-sunDelivery" style="margin-top:8px;">
+              <div class="yn-question">Sunday delivery OK?</div>
+              <div class="yn-controls">
+                <button class="yn-btn" onclick="setWeekendYN('sun','Y')">Y</button>
+                <button class="yn-btn" onclick="setWeekendYN('sun','N')">N</button>
+              </div>
             </div>
           </div>
           <input type="hidden" id="accessHours">
@@ -619,6 +625,24 @@ function formatTime12(t) {
   const [h,m] = t.split(':').map(Number);
   return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`;
 }
+const weekendYN = { sat: null, sun: null };
+
+function setWeekendYN(day, val) {
+  weekendYN[day] = val;
+  const item = document.getElementById('yn-' + (day==='sat'?'satDelivery':'sunDelivery'));
+  if (item) {
+    item.classList.remove('yes','no');
+    item.classList.add(val === 'Y' ? 'yes' : 'no');
+    item.querySelectorAll('.yn-btn').forEach(b => {
+      b.classList.remove('active-y','active-n');
+      if (b.textContent === 'Y' && val === 'Y') b.classList.add('active-y');
+      if (b.textContent === 'N' && val === 'N') b.classList.add('active-n');
+    });
+  }
+  updateHours();
+  if (typeof updateProgress === 'function') updateProgress();
+}
+
 function toggle24(cb) {
   document.getElementById('opensTime').closest('.time-field-pair').style.opacity = cb.checked ? '0.4' : '1';
   document.getElementById('opensTime').closest('.time-field-pair').style.pointerEvents = cb.checked ? 'none' : '';
@@ -630,8 +654,8 @@ function updateHours() {
   const o = document.getElementById('opensTime').value;
   const c = document.getElementById('closesTime').value;
   const add = document.getElementById('additionalHours').value.trim();
-  const sat = document.getElementById('satOK').checked;
-  const sun = document.getElementById('sunOK').checked;
+  const sat = weekendYN.sat === 'Y';
+  const sun = weekendYN.sun === 'Y';
   let r = '';
   if (o && c) r = `${formatTime12(o)} – ${formatTime12(c)}`;
   else if (o) r = `Opens ${formatTime12(o)}`;
@@ -640,15 +664,6 @@ function updateHours() {
   const wknd = [sat?'Saturday ✓':'', sun?'Sunday ✓':''].filter(Boolean).join(', ');
   if (wknd) r = r ? `${r} · Weekend: ${wknd}` : `Weekend: ${wknd}`;
   document.getElementById('accessHours').value = r;
-}
-function updateWeekendStyle() {
-  ['sat','sun'].forEach(d => {
-    const cb = document.getElementById(d+'OK');
-    const pill = document.getElementById(d+'Pill');
-    if (!cb || !pill) return;
-    pill.style.background  = cb.checked ? 'var(--green-light)' : 'white';
-    pill.style.borderColor = cb.checked ? 'var(--green)' : 'var(--gray-light)';
-  });
 }
 
 // =====================================================================
@@ -1081,14 +1096,16 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
   doc.text('Bio',margin,9);const bW=doc.getTextWidth('Bio');
   doc.setTextColor(...BLUE);doc.text('Blue',margin+bW,9);
+  const blueW=doc.getTextWidth('Blue'); // measured BEFORE font size changes below — fixes overlap bug
   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY2);
-  doc.text('  \u00b7  '+formLabel,margin+bW+doc.getTextWidth('Blue'),9);
+  doc.text('  \u00b7  '+formLabel,margin+bW+blueW,9);
   const dv=d.assessDate||d.formDate||'';
   if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-margin,9,{align:'right'});}
   doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(margin,11.5,pW-margin,11.5);
   doc.setFillColor(...MC);doc.rect(margin,13,cW,14,'F');
   doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
   doc.text(formLabel.toUpperCase(),margin+3,17.5);
+  if (d.docRef) { doc.text(d.docRef,pW-margin-3,17.5,{align:'right'}); }
   const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
   doc.setFont('helvetica','bold');doc.setFontSize(11);
   doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
@@ -1118,10 +1135,10 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   return by+37+4;
 }
 
-async function generatePDF(returnDoc=false) {
+async function generatePDF(returnDoc=false, presetData=null) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const d = collectData();
+  const d = presetData || collectData();
   const margin=15, pageW=210, cW=pageW-margin*2;
   let y=margin;
   const GREEN_S=[89,159,135], GREEN_L=[227,245,238];
@@ -1276,9 +1293,26 @@ function repairClientRecordsHeaders(wb) {
   console.log('Repaired Client Records headers — added:', missing);
 }
 
-async function updateClientRecord(d, folderId) {
+// =====================================================================
+// FIND EXISTING FILE BY NAME — used to overwrite rather than duplicate
+// =====================================================================
+async function findExistingFile(fileName, folderId) {
+  try {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${fileName.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    return (sd.files && sd.files.length) ? sd.files[0].id : null;
+  } catch(e) {
+    console.warn('findExistingFile check failed:', e.message);
+    return null;
+  }
+}
+
+async function updateClientRecord(d, folderId, clientId) {
   const fileId = await getAdminSheetId(folderId);
-  if(!fileId){console.warn('Could not get admin sheet');return;}
+  if(!fileId){console.warn('Could not get admin sheet');return null;}
 
   // Download, update, re-upload
   const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
@@ -1290,28 +1324,41 @@ async function updateClientRecord(d, folderId) {
   const ws=wb.Sheets['Client Records'];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1});
   const headers=rows[0]||[];
+  const idCol=headers.indexOf('Client ID');
   const nameCol=headers.indexOf('Billing Entity');
-  const addrCol=headers.indexOf('Street Address');
   const pkgCol=headers.indexOf('Pkg Assessment ✓');
   const notesCol=headers.indexOf('Notes Log');
+  const docCountCol=headers.indexOf('Packaged Doc #');
 
-  // Find existing row or create new one
+  // Match by Client ID first (reliable, guaranteed present); fall back to name match for legacy rows
   let rowIdx=-1;
-  for(let i=1;i<rows.length;i++){
-    if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+  if (clientId) {
+    rowIdx = rows.findIndex((r,i) => i>0 && (r[idCol]||'').toString() === clientId);
+  }
+  if (rowIdx===-1 && d.customerName) {
+    for(let i=1;i<rows.length;i++){
+      if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+    }
   }
 
   const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\nMax Vehicle: ${d.maxVehicleSize||'—'} | Forklift: ${d.ynValues.forklift||'—'} | Clear Access: ${d.ynValues.clearAccess||'—'}\n${d.assessNotes||'Assessment completed.'}`;
 
+  let newId = clientId, docCount = 0;
+
   if(rowIdx>-1){
     // Update existing row
+    newId = rows[rowIdx][idCol] || clientId;
+    const prevCount = docCountCol>-1 ? (parseInt(rows[rowIdx][docCountCol]) || 0) : 0;
+    docCount = prevCount + 1;
     if(pkgCol>-1) rows[rowIdx][pkgCol]='✓';
+    if(docCountCol>-1) rows[rowIdx][docCountCol]=docCount;
     if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
   } else {
     // Append new row — generate client ID
     const existingIds=rows.slice(1).map(r=>r[0]).filter(Boolean);
     const maxId=existingIds.reduce((m,id)=>{const n=parseInt((id+'').replace('BB-',''));return n>m?n:m;},0);
-    const newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    docCount = 1;
     const newRow=new Array(headers.length).fill('');
     const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
     set('Client ID',newId); set('Billing Entity',d.customerName);
@@ -1323,6 +1370,7 @@ async function updateClientRecord(d, folderId) {
     set('POD Email',d.podEmail);
     set('Contact Name',d.bizContactName); set('Contact Mobile',d.bizContactPhone); set('Contact Email',d.bizContactEmail);
     set('Pkg Assessment ✓','✓');
+    set('Packaged Doc #',docCount);
     set('Created Date',new Date().toLocaleDateString('en-AU')); set('Created By',d.assessedBy);
     set('Notes Log',noteEntry);
     rows.push(newRow);
@@ -1333,7 +1381,7 @@ async function updateClientRecord(d, folderId) {
   if(nws){
     const nrows=XLSX.utils.sheet_to_json(nws,{header:1});
     nrows.push([
-      rowIdx>-1?rows[rowIdx][headers.indexOf('Client ID')]:'',
+      newId,
       d.customerName, '', new Date().toLocaleString('en-AU'),
       'Packaged Assessment', d.assessedBy, d.assessNotes||'Assessment completed.'
     ]);
@@ -1351,6 +1399,7 @@ async function updateClientRecord(d, folderId) {
   form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
   form.append('file',blob,CLIENT_RECORDS_NAME);
   await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  return { newId, docCount };
 }
 
 async function downloadPDF() {
@@ -1377,49 +1426,61 @@ async function uploadAndSend() {
   if(!d.logContactEmail.trim()){showToast('⚠️ Logistics Contact — Email required');return;}
   if(!d.logContactPhone.trim()){showToast('⚠️ Logistics Contact — Phone required');return;}
 
-  showToast('⏳ Generating PDF...');
-  const pdfDoc=await generatePDF(true);
-  const pdfBlob=pdfDoc.output('blob');
   const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Packaged';
+  let pdfBlob = null;
 
   try {
     showToast('☁️ Connecting to Google...');
     await getDriveToken();
     const folderId=await getFolderId();
 
-    // Upload PDF
     // Find client folder from record
     const _clientId = new URLSearchParams(window.location.search).get('client');
     const _folderName = d.customerName || 'Unknown Client';
     showToast('📁 Finding client folder...');
     const _clientFolderId = await getClientFolderFromRecord(folderId, _clientId, _folderName);
 
+    showToast('📊 Updating client record...');
+    const result = await updateClientRecord(d, folderId, _clientId);
+    if (!result) throw new Error('Could not update client record');
+    d.docRef = result.newId + (result.docCount ? '-' + result.docCount : '');
+
+    showToast('⏳ Generating PDF...');
+    const pdfDoc=await generatePDF(true, d);
+    pdfBlob=pdfDoc.output('blob');
+
+    const existingFileId = await findExistingFile(baseName+'.pdf', _clientFolderId);
     const form=new FormData();
-    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[_clientFolderId]})],{type:'application/json'}));
-    form.append('file',pdfBlob,baseName+'.pdf');
-    const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    let up;
+    if (existingFileId) {
+      form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
+      form.append('file',pdfBlob,baseName+'.pdf');
+      up=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart&fields=id,webViewLink`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    } else {
+      form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[_clientFolderId]})],{type:'application/json'}));
+      form.append('file',pdfBlob,baseName+'.pdf');
+      up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    }
     const uploaded=await up.json();
     let driveLink=uploaded.webViewLink||'';
     showToast('✅ PDF uploaded!');
 
-    // Update Client Record
-    showToast('📊 Updating client record...');
-    await updateClientRecord(d, folderId);
-    showToast('✅ Client record updated!');
-
-    document.getElementById('modalMsg').textContent=`✅ Assessment submitted!\n\n☁️ PDF uploaded to Google Drive\n📊 Client record updated\n${driveLink?'\nDrive link:\n'+driveLink:''}`;
+    document.getElementById('modalMsg').textContent=`✅ Assessment submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated\n${driveLink?'\nDrive link:\n'+driveLink:''}`;
     const _pid = new URLSearchParams(window.location.search).get('client');
     redirectToFieldTools(_pid||'');
     document.getElementById('modal').classList.add('active');
 
   } catch(e) {
     gdriveToken=null;
-    // Fallback — save to device
-    const url=URL.createObjectURL(pdfBlob);
-    const a=document.createElement('a'); a.href=url; a.download=baseName+'.pdf';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-    document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    if (pdfBlob) {
+      const url=URL.createObjectURL(pdfBlob);
+      const a=document.createElement('a'); a.href=url; a.download=baseName+'.pdf';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    } else {
+      document.getElementById('modalMsg').textContent=`⚠️ Save failed: ${e.message}\n\nPlease try again.`;
+    }
     document.getElementById('modal').classList.add('active');
   }
 }
@@ -1445,10 +1506,12 @@ function clearAll() {
   document.getElementById('closesTime').value='';
   document.getElementById('additionalHours').value='';
   document.getElementById('open24').checked=false;
-  document.getElementById('satOK').checked=false;
-  document.getElementById('sunOK').checked=false;
+  weekendYN.sat = null; weekendYN.sun = null;
+  ['yn-satDelivery','yn-sunDelivery'].forEach(id => {
+    const item = document.getElementById(id);
+    if (item) { item.classList.remove('yes','no'); item.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n')); }
+  });
   document.getElementById('accessHours').value='';
-  updateWeekendStyle();
   for(const k in ynValues) delete ynValues[k];
   photos.length=0; renderPhotos();
   resetMap();
@@ -1614,6 +1677,12 @@ async function fetchClientDetails(clientId) {
 
     const nameEl = document.getElementById('bannerClientName');
     if (nameEl) nameEl.textContent = get('Billing Entity') || clientId;
+
+    // Show the next document reference (current count + 1) in the banner
+    const _prevCount = parseInt(get('Packaged Doc #')) || 0;
+    const _nextRef = clientId + '-' + (_prevCount + 1);
+    const bannerIdEl = document.getElementById('bannerClientId');
+    if (bannerIdEl) bannerIdEl.textContent = 'Ref: ' + clientId + '  ·  This submission will be ' + _nextRef;
 
     // Hide the retry button once loaded
     const rb = document.getElementById('prefillRetryBtn');
