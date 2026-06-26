@@ -171,7 +171,7 @@
     <div style="font-size:20px;">🏢</div>
     <div style="flex:1;">
       <div style="font-size:11px;font-weight:700;color:#00875a;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
-      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Active Client Ready to Load</div>
+      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
       <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
     </div>
     <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#00875a;text-decoration:none;
@@ -570,8 +570,6 @@ const ASSESSORS = {
 const questions = [
   { id:'forklift',  num:1, text:'Is there a forklift available on site?', reverseColor:false },
   { id:'tailLift',  num:2, text:'Will a tail lift truck be required for delivery?', reverseColor:false, showIf:{ id:'forklift', val:'N' } },
-  { id:'clearAccess', num:3, text:'Is the delivery/storage area easily accessible for a delivery vehicle?', reverseColor:false },
-  { id:'coveredStorage', num:4, text:'Is there covered or undercover storage available?', reverseColor:false },
 ];
 
 const ynValues = {};
@@ -1111,10 +1109,6 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
   doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
   doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
-  if (d.trackpodName) {
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-    doc.text('Site Name (Trackpod): '+d.trackpodName,margin+3,29);
-  }
   const by=33.5;doc.setFillColor(...ML);doc.rect(margin,by,cW,37,'F');
   const bm=margin+3,hw=(cW-8)/2;
   const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
@@ -1347,7 +1341,7 @@ async function updateClientRecord(d, folderId, clientId) {
     }
   }
 
-  const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\nMax Vehicle: ${d.maxVehicleSize||'—'} | Forklift: ${d.ynValues.forklift||'—'} | Clear Access: ${d.ynValues.clearAccess||'—'}\n${d.assessNotes||'Assessment completed.'}`;
+  const noteEntry=`[Packaged Assessment — ${new Date().toLocaleDateString('en-AU')}, ${d.assessedBy}]\nMax Vehicle: ${d.maxVehicleSize||'—'} | Forklift: ${d.ynValues.forklift||'—'}\n${d.assessNotes||'Assessment completed.'}`;
 
   let newId = clientId, docCount = 0;
   const isExistingRow = rowIdx > -1;
@@ -1587,7 +1581,7 @@ async function loadClientFromURL() {
     try {
       const _sessName = sessionStorage.getItem('bb_selected_client_name');
       const _nm = document.getElementById('bannerClientName');
-      if (_nm) _nm.textContent = _sessName || 'Active Client Ready to Load';
+      if (_nm) _nm.textContent = _sessName || 'Tap below to load full details';
     } catch(e) {}
   }
 
@@ -1904,7 +1898,7 @@ function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
   const _nm = document.getElementById('bannerClientName');
-  if (_nm) _nm.textContent = 'Active Client Ready to Load';
+  if (_nm) _nm.textContent = 'Tap below to load full details';
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');
