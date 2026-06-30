@@ -422,6 +422,14 @@
         <input type="email" id="podEmail" placeholder="e.g. pod@company.com.au">
         <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">Shared with Admin form — fills automatically if already entered</div>
       </div>
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Additional POD Email <span style="font-weight:400;font-size:10px;">(optional)</span></label>
+        <input type="email" id="podEmail2" placeholder="e.g. pod2@company.com.au">
+      </div>
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Additional POD Email <span style="font-weight:400;font-size:10px;">(optional)</span></label>
+        <input type="email" id="podEmail3" placeholder="e.g. pod3@company.com.au">
+      </div>
 
     </div>
   </div>
@@ -1069,6 +1077,8 @@ function collectData() {
     logContactEmail: g('logContactEmail'),
     logContactPhone: g('logContactPhone'),
     podEmail:        g('podEmail'),
+    podEmail2:       g('podEmail2'),
+    podEmail3:       g('podEmail3'),
     // Backward compat aliases
     contactName:  g('bizContactName'),
     contactPhone: g('bizContactPhone'),
@@ -1174,6 +1184,8 @@ async function generatePDF(returnDoc=false, presetData=null) {
   twoRow('Logistics Contact',d.logContactName||'\u2014','Title / Role',d.logContactRole||'\u2014');
   twoRow('Phone',d.logContactPhone||'\u2014','Email',d.logContactEmail||'\u2014');
   if(d.podEmail) fRow('Proof of Delivery (POD) email', d.podEmail);
+  if(d.podEmail2) fRow('Additional POD Email', d.podEmail2);
+  if(d.podEmail3) fRow('Additional POD Email', d.podEmail3);
 
   // Section 4 — Mud Map
   doc.addPage(); y=margin;
@@ -1270,7 +1282,7 @@ function repairClientRecordsHeaders(wb) {
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
     'Other Contact Label','Other Contact Name','Other Contact Role','Other Contact Email','Other Contact Phone',
-    'POD Email',
+    'POD Email','POD Email 2','POD Email 3',
     'Contact Name','Contact Title','Contact Mobile','Contact Email',
     'Product Interest','Current Supplier','Estimated Volume','Estimated Current Price','Active Products',
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
@@ -1367,6 +1379,8 @@ async function updateClientRecord(d, folderId, clientId) {
   set('Logistics Name',d.logContactName); set('Logistics Role',d.logContactRole);
   set('Logistics Email',d.logContactEmail); set('Logistics Phone',d.logContactPhone);
   set('POD Email',d.podEmail);
+  set('POD Email 2',d.podEmail2);
+  set('POD Email 3',d.podEmail3);
   set('BDM Email', d.assessorEmail);
   set('Max Vehicle Size', d.maxVehicleSize);
   set('Contact Name',d.bizContactName); set('Contact Mobile',d.bizContactPhone); set('Contact Email',d.bizContactEmail);
@@ -1502,7 +1516,7 @@ function clearAll() {
   ['customerName','assessDate','siteAddress','suburb','postcode','deliveryRequests',
    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
-   'podEmail','_siteLocationName','_descriptor','_generatedSiteName',
+   'podEmail','podEmail2','podEmail3','_siteLocationName','_descriptor','_generatedSiteName',
    'assessNotes','assessorEmail'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -1668,6 +1682,8 @@ async function fetchClientDetails(clientId) {
       logContactEmail: get('Logistics Email'),
       logContactPhone: get('Logistics Phone'),
       podEmail:        get('POD Email'),
+      podEmail2:       get('POD Email 2'),
+      podEmail3:       get('POD Email 3'),
     };
 
     Object.entries(fields).forEach(([id, val]) => {
@@ -1864,7 +1880,7 @@ async function getAdminSheetId(rootFolderId) {
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
     'Other Contact Label','Other Contact Name','Other Contact Role','Other Contact Email','Other Contact Phone',
-    'POD Email',
+    'POD Email','POD Email 2','POD Email 3',
     'Contact Name','Contact Title','Contact Mobile','Contact Email',
     'Product Interest','Current Supplier','Estimated Volume','Estimated Current Price','Active Products',
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
