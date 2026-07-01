@@ -212,6 +212,7 @@
         <div style="font-size:10px;font-weight:700;color:#006b47;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
         <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
         <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
+        <button id="prefillRetryBtn" style="display:none;margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;width:100%;">↻ Tap to load client details</button>
       </div>
       <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#006b47;text-decoration:none;background:white;border:1.5px solid #006b47;border-radius:6px;padding:5px 10px;">
         Change Client
@@ -2343,12 +2344,20 @@ async function getAdminSheetId(rootFolderId) {
 function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
+  banner.style.display = 'flex';
   const _nm = document.getElementById('bannerClientName');
   if (_nm) {
     const _urlName = new URLSearchParams(window.location.search).get('name');
     const _sessName = sessionStorage.getItem('bb_selected_client_name');
     _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
   }
+  const btn = document.getElementById('prefillRetryBtn');
+  if (btn) {
+    btn.style.display = 'block';
+    btn.textContent = '↻ Tap to load client details';
+    btn.onclick = () => { btn.textContent = '⏳ Loading...'; fetchClientDetails(clientId); };
+  }
+}
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');
