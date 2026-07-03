@@ -1536,7 +1536,8 @@ async function updateClientRecord(d, folderId, clientId) {
   const form=new FormData();
   form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
   form.append('file',blob,CLIENT_RECORDS_NAME);
-  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  const _upRes=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  if (!_upRes.ok) throw new Error(`Client record save failed (${_upRes.status})`);
   return { newId, docCount };
 }
 
@@ -1810,36 +1811,38 @@ function restoreFormFields(data) {
 }
 
 async function saveAssessmentJSON(clientFolderId, baseName, d) {
-  try {
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
-    const fileName = baseName + '_packaged_data.json';
-    const snapshot = { ...d, _savedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
+  const fileName = baseName + '_packaged_data.json';
+  const snapshot = { ...d, _savedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
 
-    // Find existing to overwrite — one-per-client rule
-    if (!_assessmentJsonFileId) {
-      const sr = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=name contains '_packaged_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`,
-        { headers: { Authorization: `Bearer ${gdriveToken}` } });
-      const sd = await sr.json();
-      if (sd.files?.length) _assessmentJsonFileId = sd.files[0].id;
-    }
+  // Find existing to overwrite — one-per-client rule
+  if (!_assessmentJsonFileId) {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name contains '_packaged_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    if (!sr.ok) throw new Error(`JSON lookup failed (${sr.status})`);
+    const sd = await sr.json();
+    if (sd.files?.length) _assessmentJsonFileId = sd.files[0].id;
+  }
 
-    const fm = new FormData();
-    if (_assessmentJsonFileId) {
-      fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
-      fm.append('file', blob, fileName);
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_assessmentJsonFileId}?uploadType=multipart`,
-        { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
-    } else {
-      fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
-      fm.append('file', blob, fileName);
-      const cr = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
-        { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
-      const created = await cr.json();
-      _assessmentJsonFileId = created.id;
-    }
-  } catch(e) { console.warn('saveAssessmentJSON failed (non-fatal):', e.message); }
+  const fm = new FormData();
+  if (_assessmentJsonFileId) {
+    fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+    fm.append('file', blob, fileName);
+    const pr = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_assessmentJsonFileId}?uploadType=multipart`,
+      { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    if (!pr.ok) throw new Error(`JSON update failed (${pr.status})`);
+  } else {
+    fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
+    fm.append('file', blob, fileName);
+    const cr = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    if (!cr.ok) throw new Error(`JSON creation failed (${cr.status})`);
+    const created = await cr.json();
+    if (!created.id) throw new Error('JSON creation returned no ID');
+    _assessmentJsonFileId = created.id;
+  }
 }
 
 async function uploadAndSend() {
@@ -1896,22 +1899,28 @@ async function uploadAndSend() {
       form.append('file',pdfBlob,baseName+'.pdf');
       up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
     }
+    if (!up.ok) throw new Error(`PDF upload failed (${up.status}) — Drive session may have expired, try reloading`);
     const uploaded=await up.json();
+    if (!uploaded.id) throw new Error('PDF upload returned no file ID');
     let driveLink=uploaded.webViewLink||'';
     showToast('✅ PDF uploaded!');
 
     // Save JSON backup for future recall — one per client, overwrites previous
-    await saveAssessmentJSON(_clientFolderId, baseName, d);
-
-    // Delete the in-progress draft now that submission succeeded
-    if (_draftFileId) {
-      fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
-        .catch(e => console.warn('Draft cleanup failed (non-fatal):', e.message));
-      _draftFileId = null;
+    let _jsonWarning = '';
+    try {
+      await saveAssessmentJSON(_clientFolderId, baseName, d);
+      if (_draftFileId) {
+        fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}`,
+          { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
+          .catch(e => console.warn('Draft cleanup failed (non-fatal):', e.message));
+        _draftFileId = null;
+      }
+    } catch(jsonErr) {
+      console.error('Assessment JSON save failed:', jsonErr);
+      _jsonWarning = `\n\n⚠️ JSON backup failed: ${jsonErr.message}\n(PDF is safe on Drive — but Recall/Load Draft won't find this submission until the JSON saves successfully)`;
     }
 
-    document.getElementById('modalMsg').textContent=`✅ Assessment submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated\n${driveLink?'\nDrive link:\n'+driveLink:''}`;
+    document.getElementById('modalMsg').textContent=`✅ Assessment submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated\n${driveLink?'\nDrive link:\n'+driveLink:''}${_jsonWarning}`;
     const _pid = new URLSearchParams(window.location.search).get('client');
     redirectToFieldTools(_pid||'');
     document.getElementById('modal').classList.add('active');
@@ -2176,6 +2185,7 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
     `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${gdriveToken}` } }
   );
+  if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
   const searchData = await searchRes.json();
   if (searchData.files && searchData.files.length > 0) {
     _folderIdCache[cacheKey] = searchData.files[0].id;
@@ -2187,7 +2197,9 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
     headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
   });
+  if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
   const created = await createRes.json();
+  if (!created.id) throw new Error('Folder creation returned no ID');
   _folderIdCache[cacheKey] = created.id;
   return _folderIdCache[cacheKey];
 }
