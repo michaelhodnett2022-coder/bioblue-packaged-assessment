@@ -175,6 +175,7 @@
     <div class="header-group-label">This Assessment's Data</div>
     <button class="btn-header-full btn-header-secondary" onclick="confirmClear()">🗑️ Clear Form</button>
     <button class="btn-header-full btn-header-secondary" onclick="recallPastAssessment()">🗂️ Recall Past Assessment</button>
+    <button class="btn-header-full btn-header-secondary" onclick="loadDraftManual()" id="loadDraftBtn" style="display:none;">📂 Load Draft</button>
     <button class="btn-header-full btn-header-secondary" onclick="saveDraft()">💾 Save Draft</button>
   </div>
 
@@ -1555,6 +1556,10 @@ function hideDraftBanner() {
   const b = document.getElementById('draftBanner');
   if (b) b.style.display = 'none';
 }
+function loadDraftManual() {
+  loadDraft();
+  hideDraftBanner();
+}
 function hideExistingBanner() {
   const b = document.getElementById('existingSubmissionBanner');
   if (b) b.style.display = 'none';
@@ -1624,6 +1629,8 @@ async function checkForDraft(rootFolderId, clientId) {
     if (dateEl) dateEl.textContent = new Date(sd.files[0].modifiedTime).toLocaleString('en-AU');
     const banner = document.getElementById('draftBanner');
     if (banner) banner.style.display = 'flex';
+    const hdrBtn = document.getElementById('loadDraftBtn');
+    if (hdrBtn) hdrBtn.style.display = 'inline-flex';
   } catch(e) { console.warn('checkForDraft failed (non-fatal):', e.message); }
 }
 
