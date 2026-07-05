@@ -1551,7 +1551,16 @@ async function downloadPDF() {
 // =====================================================================
 let _draftFileId = null;
 let _assessmentJsonFileId = null;
-const ASSESSMENT_JSON_SUBFOLDER = 'Assessment Data';
+const ASSESSMENT_JSON_SUBFOLDER = 'Packaged Data';
+
+// Consolidates JSON subfolders under one "Data" parent for tidiness (Fresh
+// Clients Only — existing clients keep using their current flat structure,
+// since getOrCreateClientFolder will simply keep finding their existing
+// subfolder at the old location; only brand-new subfolders go under Data/).
+async function getPackagedJsonFolder(clientFolderId) {
+  const dataFolderId = await getOrCreateClientFolder(clientFolderId, 'Data');
+  return await getOrCreateClientFolder(dataFolderId, ASSESSMENT_JSON_SUBFOLDER);
+}
 
 function hideDraftBanner() {
   const b = document.getElementById('draftBanner');
@@ -1583,7 +1592,7 @@ async function saveDraft() {
     const folderName = d.customerName || 'Unknown Client';
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
     if (!clientFolderId) throw new Error('Could not find client folder');
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
+    const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
 
     const fileName = `BB_Packaged_${clientId}.json`;
     const snapshot = { ...d, _draftSavedAt: new Date().toISOString(), _clientId: clientId };
@@ -1619,7 +1628,7 @@ async function checkForDraft(rootFolderId, clientId) {
     const d = collectData();
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
     if (!clientFolderId) return;
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
+    const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
     const sr = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } });
@@ -1641,7 +1650,7 @@ async function checkForExistingSubmission(rootFolderId, clientId) {
     const d = collectData();
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
     if (!clientFolderId) return;
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
+    const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
     const sr = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name contains '_packaged_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } });
@@ -1811,7 +1820,7 @@ function restoreFormFields(data) {
 }
 
 async function saveAssessmentJSON(clientFolderId, baseName, d) {
-  const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ASSESSMENT_JSON_SUBFOLDER);
+  const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
   const fileName = baseName + '_packaged_data.json';
   const snapshot = { ...d, _savedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
