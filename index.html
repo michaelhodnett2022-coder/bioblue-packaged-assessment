@@ -1327,7 +1327,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
       if(col===0){if(y+pW*0.75+capH+10>280){doc.addPage();y=margin;}if(i>0)y+=4;}
       const px2=margin+col*(pW+gap), py2=y, pH=pW*0.72;
       try{doc.addImage(photos[i].dataUrl,'JPEG',px2,py2,pW,pH,undefined,'FAST');}catch(e){}
-      doc.setFillColor(...NAVY);doc.rect(px2,py2+pH,pW,capH,'F');
+      doc.setFillColor(...GREEN);doc.rect(px2,py2+pH,pW,capH,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(5.5);doc.setFont('helvetica','normal');
       doc.text(`Photo ${i+1}`,px2+2,py2+pH+4);
       doc.setFontSize(5);doc.setTextColor(180,210,255);doc.text(photos[i].timestamp||'',px2+2,py2+pH+8);
