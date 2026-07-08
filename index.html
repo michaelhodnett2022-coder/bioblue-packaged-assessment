@@ -431,7 +431,7 @@
 
       <div class="contact-card">
         <div class="contact-card-hdr">
-          <span>Business / Site Contact</span>
+          <span>Site Contact</span>
           <span class="req-badge">Required</span>
         </div>
         <div class="contact-card-body">
@@ -517,7 +517,7 @@
     <div class="section-body" id="s5">
       <p style="font-size:12.5px;color:var(--gray-mid);margin-bottom:12px;">Enter the site address to load a satellite view, then draw the delivery route and mark the storage area.</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;position:relative;">
-        <input type="text" id="mudmapAddress" placeholder="Site address (auto-filled from Section 1)" style="flex:1;min-width:200px;" oninput="addrAutocomplete(this,'mapSuggestions')" autocomplete="off">
+        <input type="text" id="mudmapAddress" placeholder="Site address or paste coordinates (auto-filled from Section 1)" style="flex:1;min-width:200px;" oninput="addrAutocomplete(this,'mapSuggestions')" autocomplete="off">
         <div id="mapSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
         <button onclick="loadSatellite()" style="font-size:13px;padding:8px 18px;border-radius:8px;border:2px solid var(--blue);background:var(--blue);color:white;font-weight:700;cursor:pointer;white-space:nowrap;">Add Map</button>
       </div>
@@ -596,6 +596,7 @@
             <option>Derek Page</option>
             <option>Angelo Sayas</option>
             <option>Kevin Goverd</option>
+            <option>Brad Ryan</option>
           </select>
         </div>
         <div class="field-group">
@@ -687,6 +688,7 @@ const ASSESSORS = {
   'Derek Page':      { email:'derek.page@bioblue.com.au',      mobile:'+61 456 895 522' },
   'Angelo Sayas':    { email:'angelo.sayas@bioblue.com.au',    mobile:'+61 459 884 407' },
   'Kevin Goverd':    { email:'kevin.goverd@bioblue.com.au',    mobile:'0474 366 288' },
+  'Brad Ryan':       { email:'brad@bioblue.com.au',            mobile:'' },
 };
 
 // =====================================================================
@@ -1002,6 +1004,21 @@ function loadSatellite() {
   if (!addr) { showToast('Enter an address first'); return; }
   showToast('🛰️ Loading satellite view...');
   tileOffX=0;tileOffY=0;document.getElementById('tileCanvas').style.transform='';
+
+  // Coordinate detection — if the field contains raw lat/lng (e.g. pasted
+  // straight from Google Maps), skip the address geocoder entirely and
+  // centre the map directly. Matches Audit's mud-map handling.
+  const coordMatch = addr.match(/^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      renderTiles(lat, lng, 19);
+      showToast('📍 Centred on pasted coordinates');
+      return;
+    }
+  }
+
   const q = addr+', Australia';
   if (window.google&&google.maps&&google.maps.Geocoder) {
     new google.maps.Geocoder().geocode({address:q,region:'AU'},(res,st)=>{
@@ -1296,7 +1313,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
 
   // Section 3 — Contacts
   secHdr('3. CONTACTS');
-  twoRow('Business / Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
+  twoRow('Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
   twoRow('Phone',d.bizContactPhone||'\u2014','Email',d.bizContactEmail||'\u2014');
   twoRow('Logistics Contact',d.logContactName||'\u2014','Title / Role',d.logContactRole||'\u2014');
   twoRow('Phone',d.logContactPhone||'\u2014','Email',d.logContactEmail||'\u2014');
@@ -1589,7 +1606,7 @@ async function saveDraft() {
     })());
     if (!rootFolderId) throw new Error('Could not find BioBlue Audits folder');
     const d = collectData();
-    const folderName = d.customerName || 'Unknown Client';
+    const folderName = d.generatedSiteName || d.siteName || d.customerName || 'Unknown Client';
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
     if (!clientFolderId) throw new Error('Could not find client folder');
     const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
@@ -1626,7 +1643,7 @@ async function checkForDraft(rootFolderId, clientId) {
   const fileName = `BB_Packaged_${clientId}.json`;
   try {
     const d = collectData();
-    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || '');
     if (!clientFolderId) return;
     const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
     const sr = await fetch(
@@ -1648,7 +1665,7 @@ async function checkForExistingSubmission(rootFolderId, clientId) {
   if (!clientId || _assessmentJsonFileId) return;
   try {
     const d = collectData();
-    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || '');
     if (!clientFolderId) return;
     const jsonFolderId = await getPackagedJsonFolder(clientFolderId);
     const sr = await fetch(
@@ -1883,7 +1900,7 @@ async function uploadAndSend() {
 
     // Find client folder from record
     const _clientId = new URLSearchParams(window.location.search).get('client');
-    const _folderName = d.customerName || 'Unknown Client';
+    const _folderName = d.generatedSiteName || d.siteName || d.customerName || 'Unknown Client';
     showToast('📁 Finding client folder...');
     const _clientFolderId = await getClientFolderFromRecord(folderId, _clientId, _folderName);
 
@@ -2135,6 +2152,10 @@ async function fetchClientDetails(clientId) {
       const el = document.getElementById(id);
       if (el && val) el.value = val;
     });
+    // Mud-map address only auto-fills on manual entry/GPS today (via
+    // syncMapAddress calls in selectAddr/getGPS) — never on client load,
+    // which is the gap Michael reported. Same sync, just also triggered here.
+    if (typeof syncMapAddress === 'function') syncMapAddress();
 
     const stateVal = get('State');
     const stateEl  = document.getElementById('state');
@@ -2188,29 +2209,36 @@ const _folderIdCache = {};
 async function getOrCreateClientFolder(parentFolderId, folderName) {
   const cacheKey = parentFolderId + '::' + folderName;
   if (_folderIdCache[cacheKey]) return _folderIdCache[cacheKey];
-
-  // Search for existing folder with this name
-  const searchRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
-    { headers: { Authorization: `Bearer ${gdriveToken}` } }
-  );
-  if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
-  const searchData = await searchRes.json();
-  if (searchData.files && searchData.files.length > 0) {
-    _folderIdCache[cacheKey] = searchData.files[0].id;
-    return _folderIdCache[cacheKey];
+  // Cache the in-flight promise itself (not just the eventual result) so that
+  // two concurrent calls for the same folder (e.g. checkForDraft + checkForExistingSubmission
+  // firing together on page load, neither awaited) share one lookup/create instead of
+  // each independently finding "nothing exists yet" and both creating a duplicate folder.
+  _folderIdCache[cacheKey] = (async () => {
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
+    const searchData = await searchRes.json();
+    if (searchData.files && searchData.files.length > 0) {
+      return searchData.files[0].id;
+    }
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
+    });
+    if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
+    const created = await createRes.json();
+    if (!created.id) throw new Error('Folder creation returned no ID');
+    return created.id;
+  })();
+  try {
+    return await _folderIdCache[cacheKey];
+  } catch (e) {
+    delete _folderIdCache[cacheKey];
+    throw e;
   }
-  // Create new folder
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
-  });
-  if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
-  const created = await createRes.json();
-  if (!created.id) throw new Error('Folder creation returned no ID');
-  _folderIdCache[cacheKey] = created.id;
-  return _folderIdCache[cacheKey];
 }
 
 async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName) {
