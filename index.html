@@ -1983,8 +1983,8 @@ function clearAll() {
   const mvs=document.getElementById('maxVehicleSize'); if(mvs) mvs.selectedIndex=0;
   document.getElementById('state').selectedIndex=0;
   document.getElementById('assessedBy').selectedIndex=0;
-  document.getElementById('opensTime').value='';
-  document.getElementById('closesTime').value='';
+  document.getElementById('opensTime').value='00:00';
+  document.getElementById('closesTime').value='00:00';
   document.getElementById('additionalHours').value='';
   document.getElementById('open24').checked=false;
   weekendYN.sat = null; weekendYN.sun = null;
@@ -2027,6 +2027,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('assessDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('assessedBy').value='Michael Hodnett';
   autoFillAssessor('Michael Hodnett');
+  // Time spinners default to 00:00, matching Bulk Audit's behaviour
+  document.getElementById('opensTime').value='00:00';
+  document.getElementById('closesTime').value='00:00';
   // Sync address to map
   ['siteAddress','suburb','postcode'].forEach(id=>{
     document.getElementById(id).addEventListener('input',syncMapAddress);
