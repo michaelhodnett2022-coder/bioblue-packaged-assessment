@@ -1900,7 +1900,24 @@ async function uploadAndSend() {
     const pdfDoc=await generatePDF(true, d);
     pdfBlob=pdfDoc.output('blob');
 
-    const existingFileId = await findExistingFile('.Packaged.pdf', _clientFolderId);
+    // Uses an EXACT name match here, not findExistingFile's "contains" search — Drive's
+    // contains operator matches individual word-tokens anywhere in the filename, not as
+    // a contiguous phrase, so a "contains '.Packaged.pdf'" search was incorrectly matching
+    // "{SiteName}.Packaged.DRAFT.pdf" too (both share the "Packaged" and "pdf" tokens).
+    // That caused real submissions to silently overwrite the draft file's content in place
+    // instead of creating a genuinely new one — which then got deleted by the draft
+    // cleanup, since it still carried the draft's filename.
+    const _realPackagedPdfName = baseName + '.pdf';
+    const existingFileId = await (async () => {
+      try {
+        const sr = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=name='${_realPackagedPdfName.replace(/'/g,"\\'")}' and '${_clientFolderId}' in parents and trashed=false&fields=files(id)`,
+          { headers: { Authorization: `Bearer ${gdriveToken}` } }
+        );
+        const sd = await sr.json();
+        return (sd.files && sd.files.length) ? sd.files[0].id : null;
+      } catch(e) { console.warn('Existing real PDF lookup failed:', e.message); return null; }
+    })();
     const form=new FormData();
     let up;
     if (existingFileId) {
