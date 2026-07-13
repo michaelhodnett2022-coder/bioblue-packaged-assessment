@@ -356,22 +356,6 @@
             <input type="checkbox" id="open24" onchange="toggle24(this)">
             <span class="open24-badge">Open 24 Hours</span>
           </label>
-          <div style="margin-top:10px;">
-            <div class="yn-item" id="yn-satDelivery">
-              <div class="yn-question">Saturday delivery OK?</div>
-              <div class="yn-controls">
-                <button class="yn-btn" onclick="setWeekendYN('sat','Y')">Y</button>
-                <button class="yn-btn" onclick="setWeekendYN('sat','N')">N</button>
-              </div>
-            </div>
-            <div class="yn-item" id="yn-sunDelivery" style="margin-top:8px;">
-              <div class="yn-question">Sunday delivery OK?</div>
-              <div class="yn-controls">
-                <button class="yn-btn" onclick="setWeekendYN('sun','Y')">Y</button>
-                <button class="yn-btn" onclick="setWeekendYN('sun','N')">N</button>
-              </div>
-            </div>
-          </div>
           <input type="hidden" id="accessHours">
         </div>
       </div>
@@ -696,6 +680,8 @@ const ASSESSORS = {
 const questions = [
   { id:'forklift',  num:1, text:'Is there a forklift available on site?', reverseColor:false },
   { id:'tailLift',  num:2, text:'Will a tail lift truck be required for delivery?', reverseColor:false, showIf:{ id:'forklift', val:'N' } },
+  { id:'satDelivery', num:3, text:'Saturday delivery OK?' },
+  { id:'sunDelivery', num:4, text:'Sunday delivery OK?' },
 ];
 
 const ynValues = {};
@@ -750,24 +736,6 @@ function formatTime12(t) {
   const [h,m] = t.split(':').map(Number);
   return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`;
 }
-const weekendYN = { sat: null, sun: null };
-
-function setWeekendYN(day, val) {
-  weekendYN[day] = val;
-  const item = document.getElementById('yn-' + (day==='sat'?'satDelivery':'sunDelivery'));
-  if (item) {
-    item.classList.remove('yes','no');
-    item.classList.add(val === 'Y' ? 'yes' : 'no');
-    item.querySelectorAll('.yn-btn').forEach(b => {
-      b.classList.remove('active-y','active-n');
-      if (b.textContent === 'Y' && val === 'Y') b.classList.add('active-y');
-      if (b.textContent === 'N' && val === 'N') b.classList.add('active-n');
-    });
-  }
-  updateHours();
-  if (typeof updateProgress === 'function') updateProgress();
-}
-
 function toggle24(cb) {
   document.getElementById('opensTime').closest('.time-field-pair').style.opacity = cb.checked ? '0.4' : '1';
   document.getElementById('opensTime').closest('.time-field-pair').style.pointerEvents = cb.checked ? 'none' : '';
@@ -779,15 +747,11 @@ function updateHours() {
   const o = document.getElementById('opensTime').value;
   const c = document.getElementById('closesTime').value;
   const add = document.getElementById('additionalHours').value.trim();
-  const sat = weekendYN.sat === 'Y';
-  const sun = weekendYN.sun === 'Y';
   let r = '';
   if (o && c) r = `${formatTime12(o)} – ${formatTime12(c)}`;
   else if (o) r = `Opens ${formatTime12(o)}`;
   else if (c) r = `Closes ${formatTime12(c)}`;
   if (add) r = r ? `${r} · ${add}` : add;
-  const wknd = [sat?'Saturday ✓':'', sun?'Sunday ✓':''].filter(Boolean).join(', ');
-  if (wknd) r = r ? `${r} · Weekend: ${wknd}` : `Weekend: ${wknd}`;
   document.getElementById('accessHours').value = r;
 }
 
@@ -2003,11 +1967,6 @@ function clearAll() {
   document.getElementById('closesTime').value='00:00';
   document.getElementById('additionalHours').value='';
   document.getElementById('open24').checked=false;
-  weekendYN.sat = null; weekendYN.sun = null;
-  ['yn-satDelivery','yn-sunDelivery'].forEach(id => {
-    const item = document.getElementById(id);
-    if (item) { item.classList.remove('yes','no'); item.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n')); }
-  });
   document.getElementById('accessHours').value='';
   for(const k in ynValues) delete ynValues[k];
   photos.length=0; renderPhotos();
