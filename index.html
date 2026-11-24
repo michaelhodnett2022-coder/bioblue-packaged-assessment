@@ -290,7 +290,7 @@
         <label class="field-label required">Site Address</label>
         <div class="address-field-wrap">
           <div style="position:relative;">
-            <input type="text" id="siteAddress" placeholder="Street address" style="padding-right:110px;" oninput="updateProgress();addrAutocomplete(this,'addrSuggestions')" autocomplete="off">
+            <input type="text" id="siteAddress" placeholder="Street address" style="padding-right:110px;" oninput="updateProgress();addrAutocomplete(this,'addrSuggestions')" autocomplete="chrome-off">
             <div id="addrSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
           </div>
           <button class="gps-btn" onclick="getGPS()">📍 Use GPS</button>
@@ -301,11 +301,11 @@
       <div class="field-row three">
         <div class="field-group">
           <label class="field-label">Suburb</label>
-          <input type="text" id="suburb" placeholder="">
+          <input type="text" id="suburb" placeholder="" autocomplete="chrome-off">
         </div>
         <div class="field-group">
           <label class="field-label">State</label>
-          <select id="state">
+          <select id="state" autocomplete="chrome-off">
             <option value="">Select...</option>
             <option>WA</option><option>NSW</option><option>VIC</option>
             <option>QLD</option><option>SA</option><option>TAS</option>
@@ -314,7 +314,7 @@
         </div>
         <div class="field-group">
           <label class="field-label">Postcode</label>
-          <input type="text" id="postcode" placeholder="6106" maxlength="4">
+          <input type="text" id="postcode" placeholder="6106" maxlength="4" autocomplete="chrome-off">
         </div>
       </div>
 
